@@ -888,8 +888,9 @@ function renderMain() {
 }
 
 function renderHomeView(main) {
-  const dayBookings = state.bookings.filter(b => b.date === state.selectedDate);
-  
+  const dayBookings = state.bookings
+  .filter(b => String(b.roomId) === String(room.id) && b.date === state.selectedDate)
+
   const scaleHours = [];
   for (let h = state.startHour; h <= state.endHour; h++) {
     scaleHours.push(String(h).padStart(2, '0') + ':00');
