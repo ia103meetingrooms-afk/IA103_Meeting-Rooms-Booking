@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Room Booking System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.45);
+    --glass-card: rgba(255, 255, 255, 0.55);
+    --glass-card-hover: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    --ink: #1e293b;
+    --ink-soft: #475569;
+    --ink-faint: #94a3b8;
+    --primary: #0f172a;
+    --primary-dark: #000000;
+    --danger: #ef4444;
+    --radius-xl: 28px;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --font-main: 'Plus Jakarta Sans', 'IBM Plex Sans Thai', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: var(--font-main);
+    color: var(--ink);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #cbd5e1 0%, #e2e8f0 100%);
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+    position: relative;
+    padding: 24px;
+  }
+
+  #bgOverlay {
+    position: fixed; inset: 0; background-size: cover; background-position: center; z-index: 0;
+    filter: blur(12px) brightness(0.95); transform: scale(1.05); transition: background-image 0.5s ease;
+  }
+  #bgOverlay::after {
+    content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(15px);
+  }
+
+  /* Login Card Style */
+  .login-card {
+    position: relative; z-index: 10; width: 100%; max-width: 400px;
+    background: var(--glass-card); backdrop-filter: blur(25px) saturate(160%); -webkit-backdrop-filter: blur(25px) saturate(160%);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-xl); box-shadow: var(--glass-shadow);
+    padding: 32px 28px; display: flex; flex-direction: column; gap: 20px;
+  }
+  .login-header { text-align: center; }
+  .login-header h2 { font-size: 22px; font-weight: 700; color: var(--ink); margin-top: 8px; }
+  .login-header p { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+  .remember-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); cursor: pointer; }
+  .remember-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+  #app {
+    position: relative; z-index: 1; width: 100%; max-width: 1280px; height: 90vh;
+    background: var(--glass-bg); backdrop-filter: blur(25px) saturate(160%); -webkit-backdrop-filter: blur(25px) saturate(160%);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-xl); box-shadow: var(--glass-shadow);
+    display: none; flex-direction: column; overflow: hidden;
+  }
+
+  .icon {
+    width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+    fill: none; display: inline-block; vertical-align: middle; flex-shrink: 0;
+  }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; padding: 16px 28px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-logo {
+    width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,0.85);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid var(--glass-border); flex-shrink: 0;
+  }
+  .brand-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .brand-text h1 { font-size: 19px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+  .brand-text p { font-size: 12px; color: var(--ink-soft); }
+
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+    font-family: var(--font-main); font-size: 13.5px; font-weight: 600;
+    border-radius: var(--radius-md); border: 1px solid transparent; padding: 9px 16px;
+    cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-glass {
+    background: rgba(255, 255, 255, 0.65); border-color: var(--glass-border); color: var(--ink);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  }
+  .btn-glass:hover, .btn-glass.active { background: rgba(255, 255, 255, 0.95); }
+  .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+  .btn-icon { padding: 8px; width: 36px; height: 36px; border-radius: 50%; }
+
+  .lang-switch {
+    display: flex; background: rgba(255,255,255,0.4); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md); padding: 3px; gap: 2px;
+  }
+  .lang-btn {
+    border: none; background: transparent; font-size: 11px; font-weight: 700; padding: 4px 10px;
+    border-radius: 8px; cursor: pointer; color: var(--ink-soft); transition: all 0.2s;
+  }
+  .lang-btn.active { background: rgba(255,255,255,0.95); color: var(--ink); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+  .layout { display: flex; flex: 1; min-height: 0; }
+  
+  .sidebar {
+    width: 290px; border-right: 1px solid var(--glass-border); display: flex; flex-direction: column;
+    padding: 20px 16px; gap: 14px; flex-shrink: 0;
+  }
+  
+  .btn-rooms-status {
+    width: 100%; justify-content: flex-start; padding: 12px 16px; border-radius: var(--radius-lg);
+    font-size: 14px; font-weight: 700; background: rgba(255,255,255,0.55); border: 1px solid var(--glass-border);
+    color: var(--ink); transition: all 0.2s ease;
+  }
+  .btn-rooms-status:hover { background: rgba(255, 255, 255, 0.8); }
+  .btn-rooms-status.active {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+    color: var(--ink) !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  }
+  .btn-rooms-status.active .icon { stroke: var(--ink) !important; }
+
+  .sidebar-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); font-weight: 700; padding-left: 8px; margin-top: 4px; }
+  .room-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+  .room-card {
+    display: flex; align-items: center; gap: 12px; padding: 12px;
+    border-radius: var(--radius-lg); background: var(--glass-card);
+    border: 1px solid var(--glass-border); cursor: pointer; transition: all 0.2s ease;
+  }
+  .room-card:hover { background: var(--glass-card-hover); transform: translateY(-1px); }
+  .room-card.active {
+    background: rgba(255, 255, 255, 0.95); border-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  }
+  .room-thumb {
+    width: 44px; height: 44px; border-radius: 10px; background: rgba(0,0,0,0.05);
+    background-size: cover; background-position: center; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: var(--ink-faint);
+  }
+  .room-info { min-width: 0; flex: 1; }
+  .room-name { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .room-meta { font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+
+  .main { flex: 1; min-width: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  .booking-layout-grid {
+    display: grid; grid-template-columns: 1fr 300px; gap: 20px; flex: 1; min-height: 0;
+  }
+  
+  .room-preview-col {
+    background: var(--glass-card); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg); padding: 18px; display: flex; flex-direction: column; gap: 16px; height: fit-content;
+  }
+  .room-preview-img {
+    width: 100%; height: 160px; border-radius: var(--radius-md); background-size: cover; background-position: center;
+    background-color: rgba(0,0,0,0.05); border: 1px solid var(--glass-border);
+    display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-size: 12px;
+  }
+  .room-preview-details { display: flex; flex-direction: column; gap: 10px; }
+  .room-preview-details h3 { font-size: 18px; font-weight: 700; }
+  .detail-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-soft); }
+
+  .schedule-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .date-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  
+  .glass-date-input {
+    position: relative; display: inline-flex; align-items: center;
+    background: rgba(255,255,255,0.65); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md); padding: 6px 14px; backdrop-filter: blur(10px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02); transition: all 0.2s;
+  }
+  .glass-date-input:hover { background: rgba(255,255,255,0.9); }
+  .glass-date-input input[type="date"] {
+    font-family: var(--font-main); font-size: 13px; font-weight: 600;
+    border: none; background: transparent; color: var(--ink); outline: none; cursor: pointer;
+  }
+
+  .schedule-card {
+    background: var(--glass-card); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg); overflow-y: auto; flex: 1; box-shadow: inset 0 1px 2px rgba(255,255,255,0.4);
+    min-height: 400px;
+  }
+  table.grid { width: 100%; border-collapse: collapse; }
+  table.grid td { border-bottom: 1px solid rgba(0,0,0,0.04); vertical-align: top; }
+  td.time-label {
+    width: 85px; padding: 12px; font-size: 12px; font-weight: 600; color: var(--ink-soft);
+    border-right: 1px solid var(--glass-border); text-align: center;
+  }
+  td.empty-slot { cursor: pointer; height: 48px; transition: background 0.15s ease; }
+  td.empty-slot:hover { background: rgba(255, 255, 255, 0.4); }
+
+  td.booked-slot {
+    padding: 10px 14px; cursor: pointer; border-radius: 12px; transition: all 0.15s ease; backdrop-filter: blur(5px);
+  }
+  td.booked-slot:hover { transform: scale(0.995); filter: brightness(0.95); }
+  
+  td.booked-slot.color-0 {
+    background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 255, 255, 0.9);
+    border-left: 4px solid #475569; color: #0f172a; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+  td.booked-slot.color-1 {
+    background: rgba(241, 245, 249, 0.85); border: 1px solid rgba(255, 255, 255, 0.8);
+    border-left: 4px solid #64748b; color: #1e293b; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+
+  .booking-title { font-size: 13.5px; font-weight: 700; margin-bottom: 3px; }
+  .booking-meta { font-size: 11.5px; opacity: 0.8; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .home-timeline-container { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .timeline-row {
+    background: var(--glass-card); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg); padding: 16px 20px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .timeline-room-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .timeline-room-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  
+  .timeline-time-scale {
+    display: flex; justify-content: space-between; padding: 0 2px; font-size: 10px; font-weight: 600; color: var(--ink-faint); margin-bottom: -4px;
+  }
+  .timeline-bar {
+    display: flex; height: 38px; background: rgba(0,0,0,0.04); border-radius: var(--radius-md);
+    overflow: hidden; border: 1px solid var(--glass-border); position: relative;
+  }
+
+  .timeline-segment {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 500; text-align: center; overflow: hidden; white-space: nowrap;
+    text-overflow: ellipsis; padding: 0 2px; transition: all 0.2s; box-sizing: border-box;
+  }
+  .timeline-segment.free { background: rgba(255,255,255,0.45); color: var(--ink-soft); }
+  .timeline-segment.busy { background: rgba(30, 41, 59, 0.88); color: #ffffff; backdrop-filter: blur(4px); }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.25); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: all 0.2s ease;
+    padding: 16px;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-xl); width: 100%; max-width: 500px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.12); transform: translateY(15px); transition: transform 0.2s ease; overflow: hidden;
+  }
+  .overlay.open .modal { transform: translateY(0); }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--glass-border); }
+  .modal-head h3 { font-size: 16px; font-weight: 700; }
+  .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; max-height: 75vh; overflow-y: auto; }
+  .modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--glass-border); }
+
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+    font-family: var(--font-main); font-size: 13.5px; background: rgba(255,255,255,0.7); color: var(--ink); outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--primary); background: #fff; }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+  .error-text { color: var(--danger); font-size: 12px; display: none; }
+  .error-text.show { display: block; }
+
+  .setting-room-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: rgba(255,255,255,0.65); border-radius: var(--radius-md);
+    border: 1px solid var(--glass-border); gap: 10px;
+  }
+
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(15, 23, 42, 0.9); color: #fff; padding: 10px 20px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.2s ease; z-index: 200;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 900px) {
+    body { padding: 0; align-items: flex-start; }
+    #app { height: 100vh; height: 100dvh; border-radius: 0; border: none; }
+    .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+    .brand-logo { width: 40px; height: 40px; }
+    .brand-text h1 { font-size: 16px; }
+    .layout { flex-direction: column; overflow-y: auto; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--glass-border); padding: 12px 16px; gap: 10px; }
+    .room-list { flex-direction: row; overflow-x: auto; padding-bottom: 4px; flex: none; }
+    .room-card { min-width: 160px; flex-shrink: 0; }
+    .main { padding: 16px; gap: 16px; overflow-y: visible; }
+    .booking-layout-grid { grid-template-columns: 1fr; }
+    .room-preview-col { order: -1; }
+    .room-preview-img { height: 120px; }
+    .schedule-controls { flex-direction: column; align-items: stretch; }
+    .date-nav { justify-content: space-between; width: 100%; }
+    .glass-date-input { flex: 1; justify-content: center; }
+    .glass-date-input input[type="date"] { width: 100%; text-align: center; }
+    .timeline-time-scale { font-size: 9px; overflow-x: auto; }
+    .field-row { flex-direction: column; gap: 14px; }
+    .modal-head, .modal-body, .modal-foot { padding: 14px 16px; }
+  }
+
+  @media (max-width: 480px) {
+    .btn span[data-i18n="navSettings"] { display: none; }
+    .btn { padding: 8px 12px; }
+    .topbar-actions { gap: 6px; }
+    .timeline-room-header { flex-direction: column; align-items: flex-start; }
+    .timeline-room-header .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<svg style="display:none;">
+  <symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></symbol>
+  <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></symbol>
+  <symbol id="icon-door" viewBox="0 0 24 24"><path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"></path><path d="M2 20h20"></path><circle cx="14" cy="12" r="1"></circle></symbol>
+  <symbol id="icon-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></symbol>
+  <symbol id="icon-location" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></symbol>
+  <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></symbol>
+  <symbol id="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
+  <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></symbol>
+  <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></symbol>
+  <symbol id="icon-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></symbol>
+</svg>
+
+<div id="bgOverlay"></div>
+
+<!-- Login Form -->
+<div class="login-card" id="loginCard">
+  <div class="login-header">
+    <svg class="icon" style="width:40px;height:40px;color:var(--primary);"><use href="#icon-lock"></use></svg>
+    <h2>เข้าสู่ระบบ</h2>
+    <p>ระบบจองห้องประชุม IA103</p>
+  </div>
+  <form id="loginForm" onsubmit="handleLogin(event)" style="display:flex; flex-direction:column; gap:14px;">
+    <div class="field">
+      <label>ชื่อผู้ใช้งาน (Username)</label>
+      <input type="text" id="loginUsername" placeholder="กรอก Username" required>
+    </div>
+    <div class="field">
+      <label>รหัสผ่าน (Password)</label>
+      <input type="password" id="loginPassword" placeholder="กรอก Password" required>
+    </div>
+    <label class="remember-row">
+      <input type="checkbox" id="rememberMe">
+      <span>จำฉันไว้ในระบบ</span>
+    </label>
+    <div class="error-text" id="loginError">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+    <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; margin-top:6px;">เข้าสู่ระบบ</button>
+  </form>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo" id="displayLogo">
+        <svg class="icon" style="width:28px;height:28px;"><use href="#icon-door"></use></svg>
+      </div>
+      <div class="brand-text">
+        <h1 id="displayCompanyName">Book</h1>
+        <p data-i18n="subTitle">ระบบจองห้องประชุม</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="lang-switch">
+        <button class="lang-btn" id="langTH" onclick="setLanguage('th')">TH</button>
+        <button class="lang-btn" id="langEN" onclick="setLanguage('en')">EN</button>
+      </div>
+      <button class="btn btn-glass" id="btnOpenSettings">
+        <svg class="icon"><use href="#icon-settings"></use></svg>
+        <span data-i18n="navSettings">ตั้งค่าระบบ</span>
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="handleLogout()" title="ออกจากระบบ">
+        <svg class="icon"><use href="#icon-logout"></use></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <button class="btn btn-glass btn-rooms-status" id="btnNavHome" onclick="switchView('home')">
+        <svg class="icon"><use href="#icon-home"></use></svg>
+        <span data-i18n="navRoomsStatus">สถานะห้องประชุม</span>
+      </button>
+
+      <div class="sidebar-title" data-i18n="sidebarTitle">ห้องประชุมทั้งหมด</div>
+      <div class="room-list" id="roomList"></div>
+    </aside>
+
+    <main class="main" id="mainArea"></main>
+  </div>
+</div>
+
+<!-- Modal Booking -->
+<div class="overlay" id="bookingOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 data-i18n="modalBkTitle">จองห้องประชุม</h3>
+      <button class="btn btn-glass btn-icon" id="bookingModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label data-i18n="lblTopic">หัวข้อการประชุม</label>
+        <input type="text" id="bkTitle" placeholder="...">
+      </div>
+      <div class="field">
+        <label data-i18n="lblBooker">ชื่อผู้จอง</label>
+        <input type="text" id="bkBy" placeholder="...">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="lblStart">เวลาเริ่ม</label>
+          <select id="bkStart"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="lblEnd">เวลาสิ้นสุด</label>
+          <select id="bkEnd"></select>
+        </div>
+      </div>
+      <div class="error-text" id="bkError"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-glass" id="bkCancel" data-i18n="btnCancel">ยกเลิก</button>
+      <button class="btn btn-primary" id="bkSave" data-i18n="btnConfirm">ยืนยันการจอง</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Booking Detail -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 data-i18n="modalDetailTitle">รายละเอียดการจอง</h3>
+      <button class="btn btn-glass btn-icon" id="detailModalClose">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="detailDelete" data-i18n="btnDeleteBk">ลบรายการจอง</button>
+      <button class="btn btn-glass" id="detailClose" data-i18n="btnClose">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Settings Page -->
+<div class="overlay" id="settingOverlay">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-head">
+      <h3>⚙️ <span data-i18n="modalSettingTitle">ตั้งค่าระบบ</span></h3>
+      <button class="btn btn-glass btn-icon" id="settingModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label data-i18n="lblCompany">ชื่อบริษัท / องค์กร</label>
+        <input type="text" id="cfgCompanyName">
+      </div>
+      <div class="field">
+        <label data-i18n="lblLogo">โลโก้บริษัท (Direct Link URL)</label>
+        <input type="url" id="cfgLogoUrl" placeholder="https://example.com/logo.png">
+      </div>
+      <div class="field">
+        <label data-i18n="lblBg">ภาพพื้นหลัง (Direct Link URL)</label>
+        <input type="url" id="cfgBgUrl" placeholder="https://example.com/bg.jpg">
+      </div>
+      
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="lblStartHour">เวลาเริ่มทำการ</label>
+          <select id="cfgStartHour"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="lblEndHour">เวลาสิ้นสุดทำการ</label>
+          <select id="cfgEndHour"></select>
+        </div>
+      </div>
+
+      <hr style="border:0; border-top:1px solid var(--glass-border); margin:4px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label style="font-size:13px; font-weight:700;" data-i18n="lblManageRooms">จัดการห้องประชุม</label>
+        <button class="btn btn-primary btn-sm" id="btnNewRoom">
+          <svg class="icon"><use href="#icon-plus"></use></svg> <span data-i18n="btnAddRoom">เพิ่มห้องใหม่</span>
+        </button>
+      </div>
+      <div id="settingRoomList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" id="btnSaveSettings" data-i18n="btnSave">บันทึกการตั้งค่า</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Add/Edit Room -->
+<div class="overlay" id="roomEditOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="roomModalTitle" data-i18n="btnAddRoom">สร้างห้องประชุม</h3>
+      <button class="btn btn-glass btn-icon" id="roomEditModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label data-i18n="lblRoomName">ชื่อห้องประชุม</label>
+        <input type="text" id="roomName" placeholder="...">
+      </div>
+      <div class="field">
+        <label data-i18n="lblRoomImg">รูปภาพห้องประชุม (Direct Link URL)</label>
+        <input type="url" id="roomImageUrl" placeholder="https://example.com/room.jpg">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label data-i18n="lblCap">ความจุ (คน)</label>
+          <input type="number" id="roomCapacity" placeholder="10">
+        </div>
+        <div class="field">
+          <label data-i18n="lblLoc">สถานที่ / ชั้น</label>
+          <input type="text" id="roomLocation" placeholder="...">
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="lblSlotDuration">ระยะเวลาการจองขั้นต่ำ (นาที)</label>
+        <select id="roomSlotStep">
+          <option value="15">15 นาที</option>
+          <option value="30" selected>30 นาที</option>
+          <option value="45">45 นาที</option>
+          <option value="60">60 นาที (1 ชม.)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-glass" id="roomEditCancel" data-i18n="btnCancel">ยกเลิก</button>
+      <button class="btn btn-primary" id="roomEditSave" data-i18n="btnSaveRoom">บันทึกห้องประชุม</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNBVviI_OgN08zoOJM1Ek6Toe15WlZeq7np7a78ACkc8nsFrfnkp2Tg-3ksbgGqowJbQ/exec';
+
+const dict = {
+  th: {
+    subTitle: "ระบบจองห้องประชุม",
+    navRoomsStatus: "สถานะห้องประชุม",
+    navSettings: "ตั้งค่าระบบ",
+    sidebarTitle: "ห้องประชุมทั้งหมด",
+    prev: "‹ ย้อนหลัง",
+    next: "ถัดไป ›",
+    today: "วันนี้",
+    noRooms: "ไม่มีห้องประชุม กรุณาเพิ่มในเมนูตั้งค่า",
+    selectRoomPrompt: "กรุณาเลือกหรือเพิ่มห้องประชุมจากเมนูตั้งค่า",
+    cap: "คน",
+    modalBkTitle: "จองห้องประชุม",
+    lblTopic: "หัวข้อการประชุม",
+    lblBooker: "ชื่อผู้จอง",
+    lblStart: "เวลาเริ่ม",
+    lblEnd: "เวลาสิ้นสุด",
+    btnCancel: "ยกเลิก",
+    btnConfirm: "ยืนยันการจอง",
+    modalDetailTitle: "รายละเอียดการจอง",
+    btnDeleteBk: "ลบรายการจอง",
+    btnClose: "ปิด",
+    modalSettingTitle: "ตั้งค่าระบบ",
+    lblCompany: "ชื่อบริษัท / องค์กร",
+    lblLogo: "โลโก้บริษัท (Direct Link URL)",
+    lblBg: "ภาพพื้นหลัง (Direct Link URL)",
+    lblStartHour: "เวลาเริ่มทำการ",
+    lblEndHour: "เวลาสิ้นสุดทำการ",
+    lblManageRooms: "จัดการห้องประชุม",
+    btnAddRoom: "เพิ่มห้องใหม่",
+    btnSave: "บันทึกการตั้งค่า",
+    lblRoomImg: "รูปภาพห้องประชุม (Direct Link URL)",
+    lblRoomName: "ชื่อห้องประชุม",
+    lblCap: "ความจุ (คน)",
+    lblLoc: "สถานที่ / ชั้น",
+    lblSlotDuration: "ระยะเวลาช่วงการจอง",
+    btnSaveRoom: "บันทึกห้องประชุม",
+    homeTimelineTitle: "ตารางการใช้งานห้องประชุมวันนี้",
+    btnGoBook: "จองห้องนี้",
+    statusFree: "ว่างทั้งวัน",
+    statusBusy: "จองแล้ว",
+    fillAll: "กรุณากรอกข้อมูลให้ครบถ้วน",
+    conflictErr: "ช่วงเวลานี้มีการจองซ้ำซ้อน กรุณาเลือกเวลาอื่น",
+    saved: "บันทึกเรียบร้อย",
+    deleted: "ลบเรียบร้อย",
+    lblDate: "วันที่",
+    lblTime: "เวลา"
+  },
+  en: {
+    subTitle: "Room Booking System",
+    navRoomsStatus: "Rooms Status",
+    navSettings: "Settings",
+    sidebarTitle: "MEETING ROOMS",
+    prev: "‹ Prev",
+    next: "Next ›",
+    today: "Today",
+    noRooms: "No rooms available. Please add in Settings.",
+    selectRoomPrompt: "Please select or add a room from Settings.",
+    cap: "persons",
+    modalBkTitle: "Book a Room",
+    lblTopic: "Meeting Subject",
+    lblBooker: "Booked By",
+    lblStart: "Start Time",
+    lblEnd: "End Time",
+    btnCancel: "Cancel",
+    btnConfirm: "Confirm Booking",
+    modalDetailTitle: "Booking Details",
+    btnDeleteBk: "Delete Booking",
+    btnClose: "Close",
+    modalSettingTitle: "System Settings",
+    lblCompany: "Company / Organization Name",
+    lblLogo: "Company Logo (Direct Link URL)",
+    lblBg: "Background Image (Direct Link URL)",
+    lblStartHour: "Operating Start Time",
+    lblEndHour: "Operating End Time",
+    lblManageRooms: "Manage Rooms",
+    btnAddRoom: "Add Room",
+    btnSave: "Save Settings",
+    lblRoomImg: "Room Photo (Direct Link URL)",
+    lblRoomName: "Room Name",
+    lblCap: "Capacity",
+    lblLoc: "Location / Floor",
+    lblSlotDuration: "Time Slot Interval",
+    btnSaveRoom: "Save Room",
+    homeTimelineTitle: "Daily Schedule Overview",
+    btnGoBook: "Book Room",
+    statusFree: "Available All Day",
+    statusBusy: "Booked",
+    fillAll: "Please fill in all fields",
+    conflictErr: "Time slot conflict. Please choose another time.",
+    saved: "Saved successfully",
+    deleted: "Deleted successfully",
+    lblDate: "Date",
+    lblTime: "Time"
+  }
+};
+
+const DEFAULT_ROOMS = [
+  { id: 'r1', name: '11', capacity: 20, location: 'Floor 12', image: '', step: 30 },
+  { id: 'r2', name: '21', capacity: 3, location: 'Floor 12', image: '', step: 30 },
+  { id: 'r3', name: '31 (Phone Booth)', capacity: 4, location: 'Floor 12', image: '', step: 30 },
+  { id: 'r4', name: '41', capacity: 8, location: 'Floor 12', image: '', step: 30 }
+];
+
+let state = {
+  lang: localStorage.getItem('cfg_lang') || 'th',
+  currentView: 'home',
+  companyName: localStorage.getItem('cfg_companyName') || 'IA103',
+  logo: localStorage.getItem('cfg_logo') || '',
+  bg: localStorage.getItem('cfg_bg') || '',
+  startHour: parseInt(localStorage.getItem('cfg_startHour')) || 8,
+  endHour: parseInt(localStorage.getItem('cfg_endHour')) || 19,
+  rooms: JSON.parse(localStorage.getItem('cfg_rooms')) || DEFAULT_ROOMS,
+  bookings: JSON.parse(localStorage.getItem('cfg_bookings')) || [],
+  selectedRoomId: null,
+  selectedDate: fmtDate(new Date()),
+  editingRoomId: null,
+  pendingSlot: null,
+  activeDetailId: null
+};
+
+// Login Handling Functions
+function handleLogin(e) {
+  e.preventDefault();
+  const u = document.getElementById('loginUsername').value.trim();
+  const p = document.getElementById('loginPassword').value.trim();
+  const rem = document.getElementById('rememberMe').checked;
+  const err = document.getElementById('loginError');
+
+  if (u === 'ia103' && p === 'ia103!!!') {
+    err.classList.remove('show');
+    if (rem) {
+      localStorage.setItem('cfg_isLoggedIn', 'true');
+    } else {
+      sessionStorage.setItem('cfg_isLoggedIn', 'true');
+    }
+    showApp();
+  } else {
+    err.classList.add('show');
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('cfg_isLoggedIn');
+  sessionStorage.removeItem('cfg_isLoggedIn');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginCard').style.display = 'flex';
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+function showApp() {
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+}
+
+function saveConfig() {
+  localStorage.setItem('cfg_lang', state.lang);
+  localStorage.setItem('cfg_companyName', state.companyName);
+  localStorage.setItem('cfg_logo', state.logo);
+  localStorage.setItem('cfg_bg', state.bg);
+  localStorage.setItem('cfg_startHour', state.startHour);
+  localStorage.setItem('cfg_endHour', state.endHour);
+  localStorage.setItem('cfg_rooms', JSON.stringify(state.rooms));
+  localStorage.setItem('cfg_bookings', JSON.stringify(state.bookings));
+}
+
+function t(key) { return dict[state.lang][key] || key; }
+
+function setLanguage(lang) {
+  state.lang = lang;
+  saveConfig();
+  updateI18nTexts();
+  renderSidebar();
+  renderMain();
+  if (state.activeDetailId) openBookingDetail(state.activeDetailId);
+}
+
+function updateI18nTexts() {
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById(state.lang === 'th' ? 'langTH' : 'langEN');
+  if (activeBtn) activeBtn.classList.add('active');
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[state.lang][k]) el.textContent = dict[state.lang][k];
+  });
+}
+
+function fmtDate(d) {
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function generateTimeSlots(step = 30) {
+  const slots = [];
+  for (let m = state.startHour * 60; m <= state.endHour * 60; m += step) {
+    const h = String(Math.floor(m / 60)).padStart(2, '0');
+    const mm = String(m % 60).padStart(2, '0');
+    slots.push(`${h}:${mm}`);
+  }
+  return slots;
+}
+
+function timeToMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function applyBranding() {
+  document.getElementById('displayCompanyName').textContent = state.companyName;
+  const logoContainer = document.getElementById('displayLogo');
+  if (state.logo) {
+    logoContainer.innerHTML = `<img src="${state.logo}">`;
+  } else {
+    logoContainer.innerHTML = `<svg class="icon" style="width:28px;height:28px;"><use href="#icon-door"></use></svg>`;
+  }
+
+  const bgOverlay = document.getElementById('bgOverlay');
+  if (state.bg) {
+    bgOverlay.style.backgroundImage = `url('${state.bg}')`;
+  } else {
+    bgOverlay.style.backgroundImage = 'none';
+  }
+}
+
+function renderSidebar() {
+  const homeBtn = document.getElementById('btnNavHome');
+  if (state.currentView === 'home') {
+    homeBtn.classList.add('active');
+  } else {
+    homeBtn.classList.remove('active');
+  }
+
+  const list = document.getElementById('roomList');
+  if (state.rooms.length === 0) {
+    list.innerHTML = `<p style="font-size:12px; color:var(--ink-soft); text-align:center; padding:20px;">${t('noRooms')}</p>`;
+    return;
+  }
+  
+  list.innerHTML = state.rooms.map(r => `
+    <div class="room-card ${state.currentView === 'room' && r.id === state.selectedRoomId ? 'active' : ''}" onclick="selectRoom('${r.id}')">
+      <div class="room-thumb" style="${r.image ? `background-image:url('${r.image}')` : ''}">
+        ${r.image ? '' : '<svg class="icon"><use href="#icon-door"></use></svg>'}
+      </div>
+      <div class="room-info">
+        <div class="room-name">${escapeHtml(r.name)}</div>
+        <div class="room-meta">
+          <svg class="icon" style="width:13px;height:13px;stroke-width:2;"><use href="#icon-users"></use></svg>
+          <span>${r.capacity || '-'} ${t('cap')} · ${escapeHtml(r.location || '')}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectRoom(id) {
+  state.selectedRoomId = id;
+  state.currentView = 'room';
+  renderSidebar();
+  renderMain();
+}
+
+function switchView(view) {
+  state.currentView = view;
+  renderSidebar();
+  renderMain();
+}
+
+function renderMain() {
+  const main = document.getElementById('mainArea');
+  
+  if (state.currentView === 'home') {
+    renderHomeView(main);
+    return;
+  }
+
+  const room = state.rooms.find(r => r.id === state.selectedRoomId);
+  if (!room) {
+    main.innerHTML = `<div style="text-align:center; margin:auto; color:var(--ink-soft);">${t('selectRoomPrompt')}</div>`;
+    return;
+  }
+
+  main.innerHTML = `
+    <div class="schedule-controls">
+      <div class="date-nav">
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(-1)">${t('prev')}</button>
+        <div class="glass-date-input">
+          <svg class="icon" style="margin-right:6px;"><use href="#icon-calendar"></use></svg>
+          <input type="date" id="dateInput" value="${state.selectedDate}" onchange="changeDate(this.value)">
+        </div>
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(1)">${t('next')}</button>
+        <button class="btn btn-glass btn-sm" onclick="changeDate('${fmtDate(new Date())}')">${t('today')}</button>
+      </div>
+    </div>
+
+    <div class="booking-layout-grid">
+      <div class="schedule-card">
+        <table class="grid" id="scheduleGrid"></table>
+      </div>
+
+      <div class="room-preview-col">
+        <div class="room-preview-img" style="${room.image ? `background-image:url('${room.image}')` : ''}">
+          ${!room.image ? '<svg class="icon" style="width:32px;height:32px;"><use href="#icon-door"></use></svg>' : ''}
+        </div>
+        <div class="room-preview-details">
+          <h3>${escapeHtml(room.name)}</h3>
+          <div class="detail-item">
+            <svg class="icon"><use href="#icon-location"></use></svg>
+            <span>${escapeHtml(room.location || '-')}</span>
+          </div>
+          <div class="detail-item">
+            <svg class="icon"><use href="#icon-users"></use></svg>
+            <span>${room.capacity || '-'} ${t('cap')}</span>
+          </div>
+          <div class="detail-item">
+            <svg class="icon"><use href="#icon-clock"></use></svg>
+            <span>${room.step || 30} mins slot</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  renderGrid(room);
+}
+
+function renderHomeView(main) {
+  const dayBookings = state.bookings.filter(b => b.date === state.selectedDate);
+  
+  const scaleHours = [];
+  for (let h = state.startHour; h <= state.endHour; h++) {
+    scaleHours.push(String(h).padStart(2, '0') + ':00');
+  }
+  const timeScaleHtml = `
+    <div class="timeline-time-scale">
+      ${scaleHours.map(t => `<span>${t}</span>`).join('')}
+    </div>
+  `;
+  
+  const roomRows = state.rooms.map(room => {
+    const rBookings = dayBookings.filter(b => b.roomId === room.id);
+    
+    return `
+      <div class="timeline-row">
+        <div class="timeline-room-header">
+          <div class="timeline-room-title">
+            <svg class="icon"><use href="#icon-door"></use></svg>
+            ${escapeHtml(room.name)}
+            <span style="font-size:12px; font-weight:normal; color:var(--ink-soft);">(${room.capacity} ${t('cap')})</span>
+          </div>
+          <button class="btn btn-glass btn-sm" onclick="selectRoom('${room.id}')">${t('btnGoBook')}</button>
+        </div>
+        ${timeScaleHtml}
+        <div class="timeline-bar">
+          ${renderTimelineSegments(rBookings)}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  main.innerHTML = `
+    <div class="schedule-controls" style="margin-bottom:10px;">
+      <h2 style="font-size:18px; font-weight:700;">${t('homeTimelineTitle')}</h2>
+      <div class="date-nav">
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(-1)">${t('prev')}</button>
+        <div class="glass-date-input">
+          <svg class="icon" style="margin-right:6px;"><use href="#icon-calendar"></use></svg>
+          <input type="date" value="${state.selectedDate}" onchange="changeDate(this.value)">
+        </div>
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(1)">${t('next')}</button>
+        <button class="btn btn-glass btn-sm" onclick="changeDate('${fmtDate(new Date())}')">${t('today')}</button>
+      </div>
+    </div>
+    <div class="home-timeline-container">
+      ${roomRows || `<p style="text-align:center; padding:40px; color:var(--ink-soft);">${t('noRooms')}</p>`}
+    </div>
+  `;
+}
+
+function renderTimelineSegments(bookings) {
+  if (bookings.length === 0) {
+    return `<div class="timeline-segment free" style="width:100%;">${t('statusFree')}</div>`;
+  }
+  
+  const startDay = state.startHour * 60;
+  const endDay = state.endHour * 60;
+  const totalMins = endDay - startDay;
+
+  let html = '';
+  let currentMin = startDay;
+
+  bookings.sort((a, b) => timeToMin(a.start) - timeToMin(b.start)).forEach(b => {
+    const bStart = timeToMin(b.start);
+    const bEnd = timeToMin(b.end);
+
+    if (bStart > currentMin) {
+      const freeW = ((bStart - currentMin) / totalMins) * 100;
+      html += `<div class="timeline-segment free" style="width:${freeW}%;"></div>`;
+    }
+
+    const busyW = ((bEnd - bStart) / totalMins) * 100;
+    html += `<div class="timeline-segment busy" style="width:${busyW}%;" title="${b.start}-${b.end}">${t('statusBusy')}</div>`;
+    currentMin = bEnd;
+  });
+
+  if (currentMin < endDay) {
+    const freeW = ((endDay - currentMin) / totalMins) * 100;
+    html += `<div class="timeline-segment free" style="width:${freeW}%;"></div>`;
+  }
+
+  return html;
+}
+
+function shiftDate(delta) {
+  const d = new Date(state.selectedDate + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  state.selectedDate = fmtDate(d);
+  renderMain();
+}
+
+function changeDate(val) {
+  state.selectedDate = val;
+  renderMain();
+}
+
+function renderGrid(room) {
+  const step = room.step || 30;
+  const slots = generateTimeSlots(step).slice(0, -1);
+  const dayBookings = state.bookings
+    .filter(b => b.roomId === room.id && b.date === state.selectedDate)
+    .sort((a, b) => timeToMin(a.start) - timeToMin(b.start));
+
+  const bookingByStart = {};
+  dayBookings.forEach((b, idx) => {
+    b._colorIdx = idx % 2;
+    bookingByStart[b.start] = b;
+  });
+
+  let skip = 0;
+  const rows = slots.map(slot => {
+    let cell;
+    if (skip > 0) {
+      skip--;
+      cell = '';
+    } else {
+      const b = bookingByStart[slot];
+      if (b) {
+        const span = Math.round((timeToMin(b.end) - timeToMin(b.start)) / step);
+        skip = span - 1;
+        cell = `<td rowspan="${span}" class="booked-slot color-${b._colorIdx}" onclick="openBookingDetail('${b.id}')">
+          <div class="booking-title">${escapeHtml(b.title)}</div>
+          <div class="booking-meta">
+            <span><svg class="icon"><use href="#icon-clock"></use></svg> ${b.start} - ${b.end}</span>
+            <span>👤 ${escapeHtml(b.bookedBy)}</span>
+          </div>
+        </td>`;
+      } else {
+        cell = `<td class="empty-slot" onclick="openBookingModal('${room.id}', '${slot}')"></td>`;
+      }
+    }
+    return `<tr><td class="time-label">${slot}</td>${cell}</tr>`;
+  }).join('');
+
+  document.getElementById('scheduleGrid').innerHTML = rows;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function openBookingModal(roomId, startSlot) {
+  const room = state.rooms.find(r => r.id === roomId);
+  const step = room ? (room.step || 30) : 30;
+
+  state.pendingSlot = { roomId, step };
+  document.getElementById('bkTitle').value = '';
+  document.getElementById('bkBy').value = '';
+  document.getElementById('bkError').classList.remove('show');
+
+  const slots = generateTimeSlots(step);
+  const startSel = document.getElementById('bkStart');
+  const endSel = document.getElementById('bkEnd');
+
+  startSel.innerHTML = slots.slice(0, -1).map(s => `<option value="${s}" ${s === startSlot ? 'selected' : ''}>${s}</option>`).join('');
+  
+  function updateEndOptions() {
+    const curStart = startSel.value;
+    const availableEnds = slots.filter(s => timeToMin(s) > timeToMin(curStart));
+    endSel.innerHTML = availableEnds.map((s, i) => `<option value="${s}" ${i === 0 ? 'selected' : ''}>${s}</option>`).join('');
+  }
+  
+  startSel.onchange = updateEndOptions;
+  updateEndOptions();
+
+  document.getElementById('bookingOverlay').classList.add('open');
+}
+
+function openBookingDetail(id) {
+  const b = state.bookings.find(x => x.id === id);
+  if (!b) return;
+  
+  state.activeDetailId = id;
+  const room = state.rooms.find(r => r.id === b.roomId);
+  
+  document.getElementById('detailBody').innerHTML = `
+    <div class="field">
+      <label>${t('lblTopic')}</label>
+      <div style="font-weight:700; font-size:16px;">${escapeHtml(b.title)}</div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>${t('lblBooker')}</label>
+        <div>${escapeHtml(b.bookedBy)}</div>
+      </div>
+      <div class="field">
+        <label>${t('sidebarTitle')}</label>
+        <div>${escapeHtml(room ? room.name : '-')}</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>${t('lblDate')}</label>
+        <div>${b.date}</div>
+      </div>
+      <div class="field">
+        <label>${t('lblTime')}</label>
+        <div>${b.start} - ${b.end}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+// Modal controls & Event listeners
+document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
+document.getElementById('bkCancel').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
+document.getElementById('detailModalClose').onclick = () => { document.getElementById('detailOverlay').classList.remove('open'); state.activeDetailId = null; };
+document.getElementById('detailClose').onclick = () => { document.getElementById('detailOverlay').classList.remove('open'); state.activeDetailId = null; };
+
+document.getElementById('detailDelete').onclick = async () => {
+  if (!state.activeDetailId) return;
+  if (!confirm('ต้องการลบรายการจองนี้ใช่หรือไม่?')) return;
+  
+  const idToDelete = state.activeDetailId;
+  const btnDelete = document.getElementById('detailDelete');
+  btnDelete.disabled = true;
+
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: idToDelete })
+    });
+
+    const result = await response.json();
+    if (result.status === 'success') {
+      state.bookings = state.bookings.filter(b => b.id !== idToDelete);
+      saveConfig();
+      document.getElementById('detailOverlay').classList.remove('open');
+      state.activeDetailId = null;
+      renderMain();
+      showToast(t('deleted'));
+    } else {
+      alert(result.message || 'ไม่สามารถลบรายการได้');
+    }
+  } catch (error) {
+    console.error('Delete error:', error);
+    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+  } finally {
+    btnDelete.disabled = false;
+  }
+};
+
+document.getElementById('bkSave').onclick = async () => {
+  const title = document.getElementById('bkTitle').value.trim();
+  const by = document.getElementById('bkBy').value.trim();
+  const start = document.getElementById('bkStart').value;
+  const end = document.getElementById('bkEnd').value;
+  const errEl = document.getElementById('bkError');
+
+  if (!title || !by) {
+    errEl.textContent = t('fillAll');
+    errEl.classList.add('show');
+    return;
+  }
+
+  const payload = {
+    roomId: state.pendingSlot.roomId,
+    date: state.selectedDate,
+    start: start,
+    end: end,
+    title: title,
+    bookedBy: by
+  };
+
+  const btnSave = document.getElementById('bkSave');
+  btnSave.disabled = true;
+
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      state.bookings.push({
+        id: result.id || uid(),
+        roomId: payload.roomId,
+        date: payload.date,
+        start: payload.start,
+        end: payload.end,
+        title: payload.title,
+        bookedBy: payload.bookedBy
+      });
+
+      saveConfig();
+      document.getElementById('bookingOverlay').classList.remove('open');
+      renderMain();
+      showToast(t('saved'));
+    } else if (result.status === 'conflict') {
+      errEl.textContent = result.message || t('conflictErr');
+      errEl.classList.add('show');
+    } else {
+      errEl.textContent = result.message || 'เกิดข้อผิดพลาดในการบันทึก';
+      errEl.classList.add('show');
+    }
+  } catch (error) {
+    console.error('Booking error:', error);
+    errEl.textContent = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้';
+    errEl.classList.add('show');
+  } finally {
+    btnSave.disabled = false;
+  }
+};
+
+// Settings Modal Management
+document.getElementById('btnOpenSettings').onclick = () => {
+  document.getElementById('cfgCompanyName').value = state.companyName;
+  document.getElementById('cfgLogoUrl').value = state.logo;
+  document.getElementById('cfgBgUrl').value = state.bg;
+
+  const startSel = document.getElementById('cfgStartHour');
+  const endSel = document.getElementById('cfgEndHour');
+
+  startSel.innerHTML = Array.from({length: 24}, (_, i) => `<option value="${i}" ${i === state.startHour ? 'selected' : ''}>${String(i).padStart(2, '0')}:00</option>`).join('');
+  endSel.innerHTML = Array.from({length: 24}, (_, i) => `<option value="${i}" ${i === state.endHour ? 'selected' : ''}>${String(i).padStart(2, '0')}:00</option>`).join('');
+
+  renderSettingRoomList();
+  document.getElementById('settingOverlay').classList.add('open');
+};
+
+document.getElementById('settingModalClose').onclick = () => document.getElementById('settingOverlay').classList.remove('open');
+
+function renderSettingRoomList() {
+  const container = document.getElementById('settingRoomList');
+  if (state.rooms.length === 0) {
+    container.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">${t('noRooms')}</p>`;
+    return;
+  }
+  container.innerHTML = state.rooms.map(r => `
+    <div class="setting-room-item">
+      <div style="min-width:0;">
+        <div style="font-weight:700; font-size:13.5px;">${escapeHtml(r.name)}</div>
+        <div style="font-size:11.5px; color:var(--ink-soft);">${r.capacity} ${t('cap')} · ${escapeHtml(r.location || '-')}</div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-glass btn-sm btn-icon" onclick="editRoom('${r.id}')"><svg class="icon"><use href="#icon-edit"></use></svg></button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteRoom('${r.id}')"><svg class="icon"><use href="#icon-trash"></use></svg></button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btnSaveSettings').onclick = () => {
+  state.companyName = document.getElementById('cfgCompanyName').value.trim() || 'IA103';
+  state.logo = document.getElementById('cfgLogoUrl').value.trim();
+  state.bg = document.getElementById('cfgBgUrl').value.trim();
+  state.startHour = parseInt(document.getElementById('cfgStartHour').value);
+  state.endHour = parseInt(document.getElementById('cfgEndHour').value);
+
+  saveConfig();
+  applyBranding();
+  renderSidebar();
+  renderMain();
+  document.getElementById('settingOverlay').classList.remove('open');
+  showToast(t('saved'));
+};
+
+document.getElementById('btnNewRoom').onclick = () => {
+  state.editingRoomId = null;
+  document.getElementById('roomModalTitle').textContent = t('btnAddRoom');
+  document.getElementById('roomName').value = '';
+  document.getElementById('roomImageUrl').value = '';
+  document.getElementById('roomCapacity').value = '';
+  document.getElementById('roomLocation').value = '';
+  document.getElementById('roomSlotStep').value = '30';
+  document.getElementById('roomEditOverlay').classList.add('open');
+};
+
+function editRoom(id) {
+  const r = state.rooms.find(x => x.id === id);
+  if (!r) return;
+  state.editingRoomId = id;
+  document.getElementById('roomModalTitle').textContent = 'Edit Room';
+  document.getElementById('roomName').value = r.name;
+  document.getElementById('roomImageUrl').value = r.image || '';
+  document.getElementById('roomCapacity').value = r.capacity;
+  document.getElementById('roomLocation').value = r.location;
+  document.getElementById('roomSlotStep').value = r.step || 30;
+  document.getElementById('roomEditOverlay').classList.add('open');
+}
+
+function deleteRoom(id) {
+  if (!confirm('Delete room?')) return;
+  state.rooms = state.rooms.filter(r => r.id !== id);
+  state.bookings = state.bookings.filter(b => b.roomId !== id);
+  if (state.selectedRoomId === id) state.selectedRoomId = state.rooms[0]?.id || null;
+  saveConfig();
+  renderSettingRoomList();
+  renderSidebar();
+  renderMain();
+  showToast(t('deleted'));
+}
+
+document.getElementById('roomEditSave').onclick = () => {
+  const name = document.getElementById('roomName').value.trim();
+  const image = document.getElementById('roomImageUrl').value.trim();
+  const capacity = document.getElementById('roomCapacity').value;
+  const location = document.getElementById('roomLocation').value.trim();
+  const step = parseInt(document.getElementById('roomSlotStep').value) || 30;
+
+  if (!name) return alert('Name required');
+
+  if (state.editingRoomId) {
+    const r = state.rooms.find(x => x.id === state.editingRoomId);
+    r.name = name; r.image = image; r.capacity = capacity; r.location = location; r.step = step;
+  } else {
+    const newRoom = { id: uid(), name, image, capacity, location, step };
+    state.rooms.push(newRoom);
+    if (!state.selectedRoomId) state.selectedRoomId = newRoom.id;
+  }
+
+  saveConfig();
+  renderSettingRoomList();
+  renderSidebar();
+  renderMain();
+  document.getElementById('roomEditOverlay').classList.remove('open');
+  showToast(t('saved'));
+};
+
+document.getElementById('roomEditModalClose').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
+document.getElementById('roomEditCancel').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
+
+async function fetchBookingsFromSheet() {
+  try {
+    const res = await fetch(SCRIPT_URL);
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      state.bookings = data;
+      saveConfig();
+      renderMain();
+    }
+  } catch (err) {
+    console.error('Error fetching bookings:', err);
+  }
+}
+
+function initApp() {
+  updateI18nTexts();
+  applyBranding();
+  if (state.rooms.length > 0 && !state.selectedRoomId) {
+    state.selectedRoomId = state.rooms[0].id;
+  }
+  renderSidebar();
+  renderMain();
+  fetchBookingsFromSheet();
+}
+
+// Check Auth Status on Load
+function checkAuth() {
+  const isRemembered = localStorage.getItem('cfg_isLoggedIn') === 'true';
+  const isSessionActive = sessionStorage.getItem('cfg_isLoggedIn') === 'true';
+
+  if (isRemembered || isSessionActive) {
+    showApp();
+  } else {
+    document.getElementById('loginCard').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+}
+
+checkAuth();
+</script>
+</body>
+</html>
