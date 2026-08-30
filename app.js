@@ -1,4 +1,10 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbye3mAfj40ndasJtGfUNULFveY7qkysknRtoiydz-EVoiiSuZ68uDhH0EfXUXmw3ihB/exec";
+// ==========================================
+// CONFIGURATION & SUPABASE SETUP
+// ==========================================
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const dict = {
   th: {
@@ -109,7 +115,7 @@ let state = {
   bg: localStorage.getItem('cfg_bg') || '',
   startHour: parseInt(localStorage.getItem('cfg_startHour')) || 8,
   endHour: parseInt(localStorage.getItem('cfg_endHour')) || 19,
-  user: JSON.parse(localStorage.getItem('cfg_user') || 'null'),
+  user: null,
   rooms: [],
   bookings: [],
   selectedRoomId: null,
@@ -139,11 +145,6 @@ function saveConfig() {
   localStorage.setItem('cfg_bg', state.bg);
   localStorage.setItem('cfg_startHour', state.startHour);
   localStorage.setItem('cfg_endHour', state.endHour);
-  if (state.user) {
-    localStorage.setItem('cfg_user', JSON.stringify(state.user));
-  } else {
-    localStorage.removeItem('cfg_user');
-  }
 }
 
 function t(key) { return dict[state.lang][key] || key; }
@@ -172,7 +173,6 @@ function fmtDate(d) {
   const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 function generateTimeSlots(step = 30) {
   const slots = [];
@@ -183,7 +183,11 @@ function generateTimeSlots(step = 30) {
   }
   return slots;
 }
-function timeToMin(t) { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; }
+function timeToMin(t) { 
+  if(!t) return 0;
+  const parts = String(t).split(':'); 
+  return parseInt(parts[0]) * 60 + parseInt(parts[1]); 
+}
 
 function showToast(msg) {
   const el = document.getElementById('toast');
@@ -222,9 +226,9 @@ function applyBranding() {
 }
 
 // ==========================================
-// User & Admin Verification Management
+// Authentication & Supabase Integration
 // ==========================================
-function updateUserUI() {
+async function updateUserUI() {
   const loginBtn = document.getElementById('btnLoginNav');
   const userContainer = document.getElementById('userInfoContainer');
   const userBadge = document.getElementById('userBadge');
@@ -234,7 +238,7 @@ function updateUserUI() {
     if (loginBtn) loginBtn.style.display = 'none';
     if (userContainer) userContainer.style.display = 'flex';
     if (userBadge) {
-      userBadge.textContent = `${state.user.name || state.user.username} (${state.user.role.toUpperCase()})`;
+      userBadge.textContent = `${state.user.full_name || state.user.email} (${(state.user.role || 'user').toUpperCase()})`;
     }
     if (settingsBtn) settingsBtn.style.display = state.user.role === 'admin' ? 'inline-flex' : 'none';
     document.getElementById('loginOverlay').classList.remove('open');
@@ -246,64 +250,69 @@ function updateUserUI() {
 }
 
 function openLoginModal() {
-  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginEmail').value = '';
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginError').classList.remove('show');
   document.getElementById('loginOverlay').classList.add('open');
 }
 
-const loginCloseBtn = document.getElementById('loginModalClose');
-if (loginCloseBtn) {
-  loginCloseBtn.style.display = 'block';
-  loginCloseBtn.onclick = () => document.getElementById('loginOverlay').classList.remove('open');
-}
+document.getElementById('loginModalClose').onclick = () => {
+  document.getElementById('loginOverlay').classList.remove('open');
+};
 
-// *** แก้ไขจุดสำคัญ: ใช้ GET Request ข้าม CORS Preflight เพื่อป้องกัน Connection Error ***
-document.getElementById('btnLoginSubmit').onclick = () => {
-  const username = document.getElementById('loginUsername').value.trim();
+document.getElementById('btnLoginSubmit').onclick = async () => {
+  const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
   const errEl = document.getElementById('loginError');
 
-  if (!username || !password) {
-    errEl.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+  if (!email || !password) {
+    errEl.textContent = 'กรุณากรอกอีเมลและรหัสผ่าน';
     errEl.classList.add('show');
     return;
   }
 
-  showToast('กำลังตรวจสอบสิทธิ์...');
+  showToast('กำลังเข้าสู่ระบบ...');
 
-  const loginUrl = `${API_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  fetch(loginUrl)
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'success') {
-        state.user = data.user;
-        saveConfig();
-        updateUserUI();
-        showToast(`ยินดีต้อนรับ ${state.user.name}`);
-        fetchCloudData();
-      } else {
-        errEl.textContent = data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-        errEl.classList.add('show');
-      }
-    })
-    .catch((err) => {
-      console.error('Login Error:', err);
-      errEl.textContent = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้';
-      errEl.classList.add('show');
-    });
+  if (error) {
+    errEl.textContent = error.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+    errEl.classList.add('show');
+    return;
+  }
+
+  await fetchUserProfile(data.user);
+  showToast(`ยินดีต้อนรับ ${state.user.full_name || state.user.email}`);
 };
 
-function logout() {
+async function fetchUserProfile(authUser) {
+  if (!authUser) return;
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', authUser.id)
+    .single();
+
+  state.user = {
+    id: authUser.id,
+    email: authUser.email,
+    full_name: data ? data.full_name : authUser.email,
+    role: data ? data.role : 'user'
+  };
+
+  updateUserUI();
+}
+
+async function logout() {
+  await supabase.auth.signOut();
   state.user = null;
-  saveConfig();
   updateUserUI();
   showToast('ออกจากระบบเรียบร้อย');
 }
 
 // ==========================================
-// UI Rendering & Schedules
+// UI Rendering
 // ==========================================
 function renderSidebar() {
   const homeBtn = document.getElementById('btnNavHome');
@@ -553,7 +562,7 @@ function renderGrid(room) {
 }
 
 // ==========================================
-// Booking Submission
+// Booking Logic & Supabase Sync
 // ==========================================
 function openBookingModal(roomId, startSlot) {
   if (!state.user) return openLoginModal();
@@ -563,7 +572,7 @@ function openBookingModal(roomId, startSlot) {
 
   state.pendingSlot = { roomId: String(roomId), step };
   document.getElementById('bkTitle').value = '';
-  document.getElementById('bkBy').value = state.user ? (state.user.name || state.user.username) : '';
+  document.getElementById('bkBy').value = state.user ? (state.user.full_name || state.user.email) : '';
   document.getElementById('bkError').classList.remove('show');
 
   const slots = generateTimeSlots(step);
@@ -584,7 +593,7 @@ function openBookingModal(roomId, startSlot) {
   document.getElementById('bookingOverlay').classList.add('open');
 }
 
-document.getElementById('bkSave').onclick = () => {
+document.getElementById('bkSave').onclick = async () => {
   const title = document.getElementById('bkTitle').value.trim();
   const by = document.getElementById('bkBy').value.trim();
   const start = document.getElementById('bkStart').value;
@@ -612,37 +621,31 @@ document.getElementById('bkSave').onclick = () => {
     return;
   }
 
-  const newBooking = {
-    id: String(uid()),
-    roomId: String(state.pendingSlot.roomId),
-    date: String(state.selectedDate),
-    start, end, title, bookedBy: by
-  };
-
   showToast('กำลังส่งข้อมูลการจอง...');
 
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'addBooking', booking: newBooking })
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'success') {
-        document.getElementById('bookingOverlay').classList.remove('open');
-        showToast(t('saved'));
-        fetchCloudData();
-      } else {
-        errEl.textContent = data.message || t('conflictErr');
-        errEl.classList.add('show');
-        fetchCloudData();
+  const { data, error } = await supabase
+    .from('bookings')
+    .insert([
+      {
+        room_id: state.pendingSlot.roomId,
+        date: state.selectedDate,
+        start_time: start,
+        end_time: end,
+        title: title,
+        booked_by: by,
+        user_id: state.user ? state.user.id : null
       }
-    })
-    .catch((err) => {
-      console.error('Booking Error:', err);
-      errEl.textContent = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
-      errEl.classList.add('show');
-    });
+    ]);
+
+  if (error) {
+    console.error('Booking Error:', error);
+    errEl.textContent = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+    errEl.classList.add('show');
+  } else {
+    document.getElementById('bookingOverlay').classList.remove('open');
+    showToast(t('saved'));
+    fetchCloudData();
+  }
 };
 
 document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
@@ -656,7 +659,7 @@ function openBookingDetail(bookingId) {
 
   const deleteBtn = document.getElementById('detailDelete');
   if (deleteBtn) {
-    const isOwner = state.user && (state.user.name === b.bookedBy || state.user.username === b.bookedBy);
+    const isOwner = state.user && (state.user.id === b.userId || state.user.full_name === b.bookedBy);
     const isAdmin = state.user && state.user.role === 'admin';
     deleteBtn.style.display = (isAdmin || isOwner) ? 'inline-flex' : 'none';
   }
@@ -673,30 +676,23 @@ function openBookingDetail(bookingId) {
   document.getElementById('detailOverlay').classList.add('open');
 }
 
-document.getElementById('detailDelete').onclick = () => {
+document.getElementById('detailDelete').onclick = async () => {
   if (!confirm('ยืนยันการลบการจองนี้?')) return;
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
 
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'deleteBooking', id: bookingId })
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'success') {
-        document.getElementById('detailOverlay').classList.remove('open');
-        showToast(t('deleted'));
-        fetchCloudData();
-      } else {
-        showToast('ลบข้อมูลไม่สำเร็จ');
-      }
-    })
-    .catch((err) => {
-      console.error('Delete Error:', err);
-      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    });
+  const { error } = await supabase
+    .from('bookings')
+    .delete()
+    .eq('id', bookingId);
+
+  if (!error) {
+    document.getElementById('detailOverlay').classList.remove('open');
+    showToast(t('deleted'));
+    fetchCloudData();
+  } else {
+    showToast('ลบข้อมูลไม่สำเร็จ');
+  }
 };
 
 document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
@@ -786,19 +782,20 @@ function editRoom(id) {
   document.getElementById('roomEditOverlay').classList.add('open');
 }
 
-function deleteRoom(id) {
+async function deleteRoom(id) {
   if (!confirm('ยืนยันลบห้องประชุมนี้?')) return;
-  state.rooms = state.rooms.filter(r => String(r.id) !== String(id));
-  state.bookings = state.bookings.filter(b => String(b.roomId) !== String(id));
-  if (String(state.selectedRoomId) === String(id)) state.selectedRoomId = state.rooms[0]?.id || null;
-  saveConfig();
-  renderSettingRoomList();
-  renderSidebar();
-  renderMain();
-  showToast(t('deleted'));
+  
+  const { error } = await supabase.from('rooms').delete().eq('id', id);
+
+  if (!error) {
+    if (String(state.selectedRoomId) === String(id)) state.selectedRoomId = state.rooms[0]?.id || null;
+    fetchCloudData();
+    renderSettingRoomList();
+    showToast(t('deleted'));
+  }
 }
 
-document.getElementById('roomEditSave').onclick = () => {
+document.getElementById('roomEditSave').onclick = async () => {
   const name = document.getElementById('roomName').value.trim();
   const capacity = document.getElementById('roomCapacity').value;
   const location = document.getElementById('roomLocation').value.trim();
@@ -808,20 +805,12 @@ document.getElementById('roomEditSave').onclick = () => {
   if (!name) return alert('กรุณากรอกชื่อห้องประชุม');
 
   if (state.editingRoomId) {
-    const r = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
-    if (r) {
-      r.name = name; r.capacity = capacity; r.location = location; r.step = step; r.image = imageUrl;
-    }
+    await supabase.from('rooms').update({ name, capacity, location, step, image: imageUrl }).eq('id', state.editingRoomId);
   } else {
-    const newRoom = { id: String(uid()), name, capacity, location, step, image: imageUrl };
-    state.rooms.push(newRoom);
-    if (!state.selectedRoomId) state.selectedRoomId = newRoom.id;
+    await supabase.from('rooms').insert([{ name, capacity, location, step, image: imageUrl }]);
   }
 
-  saveConfig();
-  renderSettingRoomList();
-  renderSidebar();
-  renderMain();
+  fetchCloudData();
   document.getElementById('roomEditOverlay').classList.remove('open');
   showToast(t('saved'));
 };
@@ -830,37 +819,54 @@ document.getElementById('roomEditModalClose').onclick = () => document.getElemen
 document.getElementById('roomEditCancel').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
 
 // ==========================================
-// Cloud Fetch & Real-time Auto Sync
+// Cloud Fetch & Supabase Real-time Sync
 // ==========================================
-function fetchCloudData() {
-  fetch(`${API_URL}?action=getData`)
-    .then(res => res.json())
-    .then(data => {
-      if (data && data.rooms) {
-        state.rooms = data.rooms.map(r => ({ ...r, id: String(r.id), image: convertToDirectLink(r.image) }));
-      }
-      if (data && data.bookings) {
-        state.bookings = data.bookings.map(b => ({ ...b, id: String(b.id), roomId: String(b.roomId) }));
-      }
+async function fetchCloudData() {
+  const { data: rooms } = await supabase.from('rooms').select('*');
+  const { data: bookings } = await supabase.from('bookings').select('*');
 
-      if (state.rooms.length > 0 && !state.selectedRoomId) {
-        state.selectedRoomId = String(state.rooms[0].id);
-      }
-      renderSidebar();
-      renderMain();
-    })
-    .catch(err => {
-      console.warn('Sync Fallback Active:', err);
-    });
+  if (rooms) {
+    state.rooms = rooms.map(r => ({ ...r, id: String(r.id), image: convertToDirectLink(r.image) }));
+  }
+  if (bookings) {
+    state.bookings = bookings.map(b => ({
+      id: String(b.id),
+      roomId: String(b.room_id),
+      date: b.date,
+      start: b.start_time ? b.start_time.slice(0, 5) : '',
+      end: b.end_time ? b.end_time.slice(0, 5) : '',
+      title: b.title,
+      bookedBy: b.booked_by,
+      userId: b.user_id
+    }));
+  }
+
+  if (state.rooms.length > 0 && !state.selectedRoomId) {
+    state.selectedRoomId = String(state.rooms[0].id);
+  }
+  renderSidebar();
+  renderMain();
 }
 
-function init() {
+function initRealtime() {
+  supabase
+    .channel('public-db-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => fetchCloudData())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, () => fetchCloudData())
+    .subscribe();
+}
+
+async function init() {
   updateI18nTexts();
   applyBranding();
-  updateUserUI();
-  fetchCloudData();
-  
-  setInterval(fetchCloudData, 10000);
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await fetchUserProfile(session.user);
+  }
+
+  await fetchCloudData();
+  initRealtime();
 }
 
 document.addEventListener('DOMContentLoaded', init);
