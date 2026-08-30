@@ -1,8 +1,8 @@
 // ==========================================
 // CONFIGURATION & SUPABASE SETUP
 // ==========================================
-const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "gsovpscrhwykvxpkrzxr";
+const SUPABASE_ANON_KEY = "ap-southeast-1";
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
