@@ -11,6 +11,8 @@ const dict = {
     subTitle: "ระบบจองห้องประชุม",
     navRoomsStatus: "สถานะห้องประชุม",
     navSettings: "ตั้งค่าระบบ",
+    btnLogin: "เข้าสู่ระบบ",
+    modalLoginTitle: "เข้าสู่ระบบ",
     sidebarTitle: "ห้องประชุมทั้งหมด",
     prev: "‹ ย้อนหลัง",
     next: "ถัดไป ›",
@@ -58,6 +60,8 @@ const dict = {
     subTitle: "Room Booking System",
     navRoomsStatus: "Rooms Status",
     navSettings: "Settings",
+    btnLogin: "Login",
+    modalLoginTitle: "Login to System",
     sidebarTitle: "MEETING ROOMS",
     prev: "‹ Prev",
     next: "Next ›",
@@ -111,36 +115,37 @@ let state = {
   bg: localStorage.getItem('cfg_bg') || '',
   startHour: parseInt(localStorage.getItem('cfg_startHour')) || 8,
   endHour: parseInt(localStorage.getItem('cfg_endHour')) || 19,
+  user: JSON.parse(localStorage.getItem('cfg_user') || 'null'),
   rooms: [],
   bookings: [],
   selectedRoomId: null,
   selectedDate: fmtDate(new Date()),
   editingRoomId: null,
   pendingSlot: null,
-  activeDetailId: null,
-  // ระบบ "pending sync": เก็บรายการที่เพิ่ง add/edit/delete ในเครื่องนี้ไว้ชั่วคราว
-  // เพื่อไม่ให้ผลลัพธ์จาก fetchCloudData() (ที่ Sheet อาจยังบันทึกไม่ทัน) มาเขียนทับจน UI หายวับ
-  pendingBookings: {},     // id -> { data, ts }
-  pendingDeletes: {},      // id -> ts
-  pendingRooms: {},        // id -> { data, ts }
-  pendingRoomDeletes: {}   // id -> ts
+  activeDetailId: null
 };
 
-const PENDING_TTL_MS = 20000; // เก็บสถานะ optimistic ไว้สูงสุด 20 วิ หลังจากนั้นให้ข้อมูลจริงจาก Sheet ชนะเสมอ
+// ==========================================
+// 2. Helper Functions & Direct Link Converter
+// ==========================================
+function convertToDirectLink(url) {
+  if (!url) return '';
+  let str = String(url).trim();
 
-function postToApi(payload) {
-  // ใช้ Content-Type: text/plain เพื่อเลี่ยง CORS preflight ของ Apps Script Web App
-  // (Code.gs อ่านค่าจาก e.postData.contents แล้ว JSON.parse เองอยู่แล้ว)
-  return fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
-  }).then(res => res.json());
+  // Google Drive
+  if (str.includes('drive.google.com')) {
+    const match = str.match(/\/d\/([a-zA-Z0-9_-]+)/) || str.match(/id=([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    }
+  }
+  // Dropbox
+  if (str.includes('dropbox.com')) {
+    return str.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '');
+  }
+  return str;
 }
 
-// ==========================================
-// 2. Helper Functions
-// ==========================================
 function saveConfig() {
   localStorage.setItem('cfg_lang', state.lang);
   localStorage.setItem('cfg_companyName', state.companyName);
@@ -148,6 +153,11 @@ function saveConfig() {
   localStorage.setItem('cfg_bg', state.bg);
   localStorage.setItem('cfg_startHour', state.startHour);
   localStorage.setItem('cfg_endHour', state.endHour);
+  if (state.user) {
+    localStorage.setItem('cfg_user', JSON.stringify(state.user));
+  } else {
+    localStorage.removeItem('cfg_user');
+  }
 }
 
 function t(key) { return dict[state.lang][key] || key; }
@@ -193,7 +203,7 @@ function showToast(msg) {
   const el = document.getElementById('toast');
   if (!el) return;
   el.textContent = msg; el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2000);
+  setTimeout(() => el.classList.remove('show'), 2500);
 }
 
 function escapeHtml(str) {
@@ -208,8 +218,9 @@ function applyBranding() {
   
   const logoContainer = document.getElementById('displayLogo');
   if (logoContainer) {
-    if (state.logo) {
-      logoContainer.innerHTML = `<img src="${state.logo}" style="max-height:100%; max-width:100%; object-fit:contain;">`;
+    const logoUrl = convertToDirectLink(state.logo);
+    if (logoUrl) {
+      logoContainer.innerHTML = `<img src="${logoUrl}" style="max-height:100%; max-width:100%; object-fit:contain;">`;
     } else {
       logoContainer.innerHTML = `<svg class="icon" style="width:28px;height:28px;"><use href="#icon-door"></use></svg>`;
     }
@@ -217,12 +228,93 @@ function applyBranding() {
 
   const bgOverlay = document.getElementById('bgOverlay');
   if (bgOverlay) {
-    bgOverlay.style.backgroundImage = state.bg ? `url('${state.bg}')` : 'none';
+    const bgUrl = convertToDirectLink(state.bg);
+    bgOverlay.style.backgroundImage = bgUrl ? `url('${bgUrl}')` : 'none';
   }
+
+  updateUserUI();
 }
 
 // ==========================================
-// 3. Render UI
+// 3. User & Admin Management
+// ==========================================
+function updateUserUI() {
+  const loginBtn = document.getElementById('btnLoginNav');
+  const userContainer = document.getElementById('userInfoContainer');
+  const userBadge = document.getElementById('userBadge');
+  const settingsBtn = document.getElementById('btnOpenSettings');
+
+  if (state.user) {
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (userContainer) userContainer.style.display = 'flex';
+    if (userBadge) {
+      userBadge.textContent = `${state.user.name || state.user.username} (${state.user.role.toUpperCase()})`;
+    }
+    // สิทธิ์ Admin เท่านั้นที่จะเห็นปุ่มตั้งค่า
+    if (settingsBtn) settingsBtn.style.display = state.user.role === 'admin' ? 'inline-flex' : 'none';
+  } else {
+    if (loginBtn) loginBtn.style.display = 'inline-flex';
+    if (userContainer) userContainer.style.display = 'none';
+    if (settingsBtn) settingsBtn.style.display = 'none';
+  }
+}
+
+function openLoginModal() {
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('loginOverlay').classList.add('open');
+}
+
+document.getElementById('loginModalClose').onclick = () => document.getElementById('loginOverlay').classList.remove('open');
+
+document.getElementById('btnLoginSubmit').onclick = () => {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  const errEl = document.getElementById('loginError');
+
+  if (!username || !password) {
+    errEl.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน';
+    errEl.classList.add('show');
+    return;
+  }
+
+  showToast('กำลังเข้าสู่ระบบ...');
+  const params = new URLSearchParams({ action: 'login', username, password });
+
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        state.user = data.user;
+        saveConfig();
+        updateUserUI();
+        document.getElementById('loginOverlay').classList.remove('open');
+        showToast(`ยินดีต้อนรับ ${state.user.name}`);
+        renderSidebar();
+        renderMain();
+      } else {
+        errEl.textContent = data.message || 'เข้าสู่ระบบไม่สำเร็จ';
+        errEl.classList.add('show');
+      }
+    })
+    .catch(err => {
+      errEl.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้';
+      errEl.classList.add('show');
+    });
+};
+
+function logout() {
+  state.user = null;
+  saveConfig();
+  updateUserUI();
+  showToast('ออกจากระบบเรียบร้อย');
+  renderSidebar();
+  renderMain();
+}
+
+// ==========================================
+// 4. Render UI
 // ==========================================
 function renderSidebar() {
   const homeBtn = document.getElementById('btnNavHome');
@@ -239,20 +331,23 @@ function renderSidebar() {
     return;
   }
   
-  list.innerHTML = state.rooms.map(r => `
-    <div class="room-card ${state.currentView === 'room' && String(r.id) === String(state.selectedRoomId) ? 'active' : ''}" onclick="selectRoom('${r.id}')">
-      <div class="room-thumb" style="${r.image ? `background-image:url('${r.image}')` : ''}">
-        ${r.image ? '' : '<svg class="icon"><use href="#icon-door"></use></svg>'}
-      </div>
-      <div class="room-info">
-        <div class="room-name">${escapeHtml(r.name)}</div>
-        <div class="room-meta">
-          <svg class="icon" style="width:13px;height:13px;stroke-width:2;"><use href="#icon-users"></use></svg>
-          <span>${r.capacity || '-'} ${t('cap')} · ${escapeHtml(r.location || '')}</span>
+  list.innerHTML = state.rooms.map(r => {
+    const imgUrl = convertToDirectLink(r.image);
+    return `
+      <div class="room-card ${state.currentView === 'room' && String(r.id) === String(state.selectedRoomId) ? 'active' : ''}" onclick="selectRoom('${r.id}')">
+        <div class="room-thumb" style="${imgUrl ? `background-image:url('${imgUrl}')` : ''}">
+          ${imgUrl ? '' : '<svg class="icon"><use href="#icon-door"></use></svg>'}
+        </div>
+        <div class="room-info">
+          <div class="room-name">${escapeHtml(r.name)}</div>
+          <div class="room-meta">
+            <svg class="icon" style="width:13px;height:13px;stroke-width:2;"><use href="#icon-users"></use></svg>
+            <span>${r.capacity || '-'} ${t('cap')} · ${escapeHtml(r.location || '')}</span>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function selectRoom(id) {
@@ -283,6 +378,8 @@ function renderMain() {
     return;
   }
 
+  const roomImg = convertToDirectLink(room.image);
+
   main.innerHTML = `
     <div class="schedule-controls">
       <div class="date-nav">
@@ -302,8 +399,8 @@ function renderMain() {
       </div>
 
       <div class="room-preview-col">
-        <div class="room-preview-img" style="${room.image ? `background-image:url('${room.image}')` : ''}">
-          ${!room.image ? '<svg class="icon" style="width:32px;height:32px;"><use href="#icon-door"></use></svg>' : ''}
+        <div class="room-preview-img" style="${roomImg ? `background-image:url('${roomImg}')` : ''}">
+          ${!roomImg ? '<svg class="icon" style="width:32px;height:32px;"><use href="#icon-door"></use></svg>' : ''}
         </div>
         <div class="room-preview-details">
           <h3>${escapeHtml(room.name)}</h3>
@@ -467,7 +564,7 @@ function renderGrid(room) {
 }
 
 // ==========================================
-// 4. Modal Booking & Action
+// 5. Modal Booking & Real-time Action
 // ==========================================
 function openBookingModal(roomId, startSlot) {
   const room = state.rooms.find(r => String(r.id) === String(roomId));
@@ -475,7 +572,7 @@ function openBookingModal(roomId, startSlot) {
 
   state.pendingSlot = { roomId: String(roomId), step };
   document.getElementById('bkTitle').value = '';
-  document.getElementById('bkBy').value = '';
+  document.getElementById('bkBy').value = state.user ? (state.user.name || state.user.username) : '';
   document.getElementById('bkError').classList.remove('show');
 
   const slots = generateTimeSlots(step);
@@ -512,6 +609,7 @@ document.getElementById('bkSave').onclick = () => {
   const startMin = timeToMin(start);
   const endMin = timeToMin(end);
 
+  // ตรวจสอบขั้นต้นที่ฝั่ง Front-end
   const conflict = state.bookings.some(b => 
     String(b.roomId) === String(state.pendingSlot.roomId) &&
     String(b.date).trim() === String(state.selectedDate).trim() &&
@@ -531,34 +629,31 @@ document.getElementById('bkSave').onclick = () => {
     start, end, title, bookedBy: by
   };
 
-  showToast('กำลังบันทึกข้อมูล...');
+  showToast('กำลังส่งข้อมูลจอง...');
 
-  // อัปเดตใน UI ก่อนทันที (optimistic) และขึ้นทะเบียนเป็น pending
-  // เพื่อไม่ให้ fetchCloudData() รอบถัดไปเขียนทับจนรายการนี้หายวับก่อน Sheet จะบันทึกเสร็จ
-  state.pendingBookings[newBooking.id] = { data: newBooking, ts: Date.now() };
-  state.bookings.push(newBooking);
-  document.getElementById('bookingOverlay').classList.remove('open');
-  renderMain();
+  const params = new URLSearchParams({
+    action: 'addBooking',
+    booking: JSON.stringify(newBooking)
+  });
 
-  postToApi({ action: 'addBooking', booking: newBooking })
+  // ส่งบันทึกเข้า Apps Script และรอผลยืนยันจาก Server
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
     .then(data => {
       if (data.status === 'success') {
+        state.bookings.push(newBooking);
+        document.getElementById('bookingOverlay').classList.remove('open');
+        renderMain();
         showToast(t('saved'));
       } else {
-        // เซิร์ฟเวอร์ปฏิเสธ (เช่นมีคนจองเวลาเดียวกันไปก่อนจากเครื่องอื่น) -> ย้อนกลับ UI
-        delete state.pendingBookings[newBooking.id];
-        state.bookings = state.bookings.filter(b => b.id !== newBooking.id);
-        showToast(data.message === 'conflict' ? t('conflictErr') : 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
-        renderMain();
+        errEl.textContent = data.message || t('conflictErr');
+        errEl.classList.add('show');
+        fetchCloudData(); // ดึงข้อมูลล่าสุดกลับมาทันที
       }
-      // ดึงข้อมูลล่าสุดทันที ไม่ต้องรอรอบ poll ถัดไป ให้ผู้ใช้คนอื่นเห็นแบบเรียลไทม์
-      fetchCloudData();
     })
     .catch(err => {
-      console.warn('Network sync notice:', err);
-      // ไม่ทราบผลจริงจากเซิร์ฟเวอร์ (เช่นเน็ตหลุด) - ปล่อยให้รายการ pending อยู่จนกว่าจะหมดอายุ
-      // หรือ poll ครั้งถัดไปยืนยันว่าบันทึกสำเร็จจริง แทนที่จะฟันธงว่าสำเร็จทันที
-      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
+      errEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+      errEl.classList.add('show');
     });
 };
 
@@ -570,6 +665,14 @@ function openBookingDetail(bookingId) {
   const b = state.bookings.find(x => String(x.id) === String(bookingId));
   if (!b) return;
   const room = state.rooms.find(r => String(r.id) === String(b.roomId));
+
+  const deleteBtn = document.getElementById('detailDelete');
+  // สิทธิ์ Admin หรือเจ้าของรายการจึงลบได้
+  if (deleteBtn) {
+    const isOwner = state.user && (state.user.name === b.bookedBy || state.user.username === b.bookedBy);
+    const isAdmin = state.user && state.user.role === 'admin';
+    deleteBtn.style.display = (isAdmin || isOwner) ? 'inline-flex' : 'none';
+  }
 
   document.getElementById('detailBody').innerHTML = `
     <div style="font-size:14px; line-height:1.8;">
@@ -584,34 +687,38 @@ function openBookingDetail(bookingId) {
 }
 
 document.getElementById('detailDelete').onclick = () => {
-  if (!confirm('Confirm delete?')) return;
+  if (!confirm('ยืนยันการลบการจองนี้?')) return;
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
 
-  // อัปเดต UI ฝั่งผู้ใช้ทันที และขึ้นทะเบียนเป็น pending delete กัน poll เอากลับมาแสดงซ้ำก่อนลบเสร็จจริง
-  state.pendingDeletes[bookingId] = Date.now();
-  state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
-  document.getElementById('detailOverlay').classList.remove('open');
-  renderMain();
+  const params = new URLSearchParams({ action: 'deleteBooking', id: bookingId });
 
-  postToApi({ action: 'deleteBooking', id: bookingId })
-    .then(() => {
-      showToast(t('deleted'));
-      fetchCloudData();
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
+        document.getElementById('detailOverlay').classList.remove('open');
+        renderMain();
+        showToast(t('deleted'));
+      } else {
+        showToast('ลบข้อมูลไม่สำเร็จ');
+      }
     })
-    .catch(err => {
-      console.warn('Network sync notice:', err);
-      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
-    });
+    .catch(() => showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
 };
 
 document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 document.getElementById('detailClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 
 // ==========================================
-// 5. Settings & Room Operations
+// 6. Settings & Room Operations (Admin Only)
 // ==========================================
 document.getElementById('btnOpenSettings').onclick = () => {
+  if (!state.user || state.user.role !== 'admin') {
+    return alert('เมนูนี้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น');
+  }
+
   document.getElementById('cfgCompanyName').value = state.companyName;
   document.getElementById('cfgLogoInput').value = state.logo;
   document.getElementById('cfgBgInput').value = state.bg;
@@ -654,8 +761,8 @@ document.getElementById('btnSaveSettings').onclick = () => {
   state.companyName = document.getElementById('cfgCompanyName').value.trim() || 'IA103';
   state.startHour = parseInt(document.getElementById('cfgStartHour').value);
   state.endHour = parseInt(document.getElementById('cfgEndHour').value);
-  state.logo = document.getElementById('cfgLogoInput').value.trim();
-  state.bg = document.getElementById('cfgBgInput').value.trim();
+  state.logo = convertToDirectLink(document.getElementById('cfgLogoInput').value.trim());
+  state.bg = convertToDirectLink(document.getElementById('cfgBgInput').value.trim());
 
   saveConfig();
   applyBranding();
@@ -679,7 +786,7 @@ function editRoom(id) {
   const r = state.rooms.find(x => String(x.id) === String(id));
   if (!r) return;
   state.editingRoomId = String(id);
-  document.getElementById('roomModalTitle').textContent = 'Edit Room';
+  document.getElementById('roomModalTitle').textContent = 'แก้ไขห้องประชุม';
   document.getElementById('roomName').value = r.name;
   document.getElementById('roomCapacity').value = r.capacity;
   document.getElementById('roomLocation').value = r.location;
@@ -689,22 +796,15 @@ function editRoom(id) {
 }
 
 function deleteRoom(id) {
-  if (!confirm('Delete room?')) return;
-  state.pendingRoomDeletes[id] = Date.now();
+  if (!confirm('ยืนยันลบห้องประชุมนี้?')) return;
   state.rooms = state.rooms.filter(r => String(r.id) !== String(id));
   state.bookings = state.bookings.filter(b => String(b.roomId) !== String(id));
   if (String(state.selectedRoomId) === String(id)) state.selectedRoomId = state.rooms[0]?.id || null;
+  saveConfig();
   renderSettingRoomList();
   renderSidebar();
   renderMain();
   showToast(t('deleted'));
-
-  postToApi({ action: 'deleteRoom', id })
-    .then(() => fetchCloudData())
-    .catch(err => {
-      console.warn('Network sync notice:', err);
-      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
-    });
 }
 
 document.getElementById('roomEditSave').onclick = () => {
@@ -712,87 +812,44 @@ document.getElementById('roomEditSave').onclick = () => {
   const capacity = document.getElementById('roomCapacity').value;
   const location = document.getElementById('roomLocation').value.trim();
   const step = parseInt(document.getElementById('roomSlotStep').value) || 30;
-  const imageUrl = document.getElementById('roomImageInput').value.trim();
+  const imageUrl = convertToDirectLink(document.getElementById('roomImageInput').value.trim());
 
-  if (!name) return alert('Name required');
+  if (!name) return alert('กรุณากรอกชื่อห้องประชุม');
 
-  let room, isNew = false;
   if (state.editingRoomId) {
-    room = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
-    if (room) {
-      room.name = name; room.capacity = capacity; room.location = location; room.step = step; room.image = imageUrl;
+    const r = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
+    if (r) {
+      r.name = name; r.capacity = capacity; r.location = location; r.step = step; r.image = imageUrl;
     }
   } else {
-    room = { id: String(uid()), name, capacity, location, step, image: imageUrl };
-    state.rooms.push(room);
-    isNew = true;
-    if (!state.selectedRoomId) state.selectedRoomId = room.id;
+    const newRoom = { id: String(uid()), name, capacity, location, step, image: imageUrl };
+    state.rooms.push(newRoom);
+    if (!state.selectedRoomId) state.selectedRoomId = newRoom.id;
   }
 
-  // ขึ้นทะเบียน pending กันหายวับ เหมือนกับ booking
-  state.pendingRooms[room.id] = { data: room, ts: Date.now() };
-
+  saveConfig();
   renderSettingRoomList();
   renderSidebar();
   renderMain();
   document.getElementById('roomEditOverlay').classList.remove('open');
   showToast(t('saved'));
-
-  postToApi({ action: isNew ? 'addRoom' : 'updateRoom', room })
-    .then(data => {
-      if (data.status !== 'success') showToast('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
-      fetchCloudData();
-    })
-    .catch(err => {
-      console.warn('Network sync notice:', err);
-      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
-    });
 };
 
 document.getElementById('roomEditModalClose').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
 document.getElementById('roomEditCancel').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
 
 // ==========================================
-// 6. Fetch Data & Initialize
+// 7. Fetch Data & Initialize
 // ==========================================
-// รวมข้อมูลจริงจาก Sheet เข้ากับรายการที่เพิ่งแก้ในเครื่องนี้แต่ยัง sync ไม่เสร็จ (pending)
-// - ถ้า id ที่ pending ปรากฏใน server แล้ว -> ถือว่า sync สำเร็จ เอา pending flag ออก ใช้ค่าจาก server
-// - ถ้ายังไม่ปรากฏและยังไม่เกิน TTL -> คงค่าที่เพิ่ง add/edit ไว้ใน UI ก่อน กันไม่ให้หายวับ
-// - ถ้าเกิน TTL แล้วยังไม่ปรากฏ -> ปล่อยให้ข้อมูลจริงจาก server ชนะ (เผื่อ request เดิม fail ไปแล้วจริง ๆ)
-function mergeWithPending(serverList, pendingAddMap, pendingDeleteMap) {
-  const now = Date.now();
-
-  Object.keys(pendingAddMap).forEach(id => {
-    const onServer = serverList.find(x => String(x.id) === id);
-    if (onServer || now - pendingAddMap[id].ts > PENDING_TTL_MS) delete pendingAddMap[id];
-  });
-  Object.keys(pendingDeleteMap).forEach(id => {
-    const onServer = serverList.find(x => String(x.id) === id);
-    if (!onServer || now - pendingDeleteMap[id] > PENDING_TTL_MS) delete pendingDeleteMap[id];
-  });
-
-  let merged = serverList
-    .filter(x => !pendingDeleteMap[String(x.id)])
-    .map(x => pendingAddMap[String(x.id)] ? pendingAddMap[String(x.id)].data : x);
-
-  Object.keys(pendingAddMap).forEach(id => {
-    if (!merged.find(x => String(x.id) === id)) merged.push(pendingAddMap[id].data);
-  });
-
-  return merged;
-}
-
 function fetchCloudData() {
   fetch(`${API_URL}?action=getData`)
     .then(res => res.json())
     .then(data => {
       if (data && data.rooms) {
-        const serverRooms = data.rooms.map(r => ({ ...r, id: String(r.id) }));
-        state.rooms = mergeWithPending(serverRooms, state.pendingRooms, state.pendingRoomDeletes);
+        state.rooms = data.rooms.map(r => ({ ...r, id: String(r.id), image: convertToDirectLink(r.image) }));
       }
       if (data && data.bookings) {
-        const serverBookings = data.bookings.map(b => ({ ...b, id: String(b.id), roomId: String(b.roomId) }));
-        state.bookings = mergeWithPending(serverBookings, state.pendingBookings, state.pendingDeletes);
+        state.bookings = data.bookings.map(b => ({ ...b, id: String(b.id), roomId: String(b.roomId) }));
       }
 
       if (state.rooms.length > 0 && !state.selectedRoomId) {
@@ -800,9 +857,6 @@ function fetchCloudData() {
       }
       renderSidebar();
       renderMain();
-      if (state.activeDetailId && document.getElementById('detailOverlay').classList.contains('open')) {
-        openBookingDetail(state.activeDetailId);
-      }
     })
     .catch(err => {
       console.warn('Cloud Fetch Fallback Active:', err);
@@ -815,8 +869,7 @@ function init() {
   updateI18nTexts();
   applyBranding();
   fetchCloudData();
-  // Poll ทุก 5 วิ เพื่อความ real-time ที่ดีขึ้น (ร่วมกับการ fetch ทันทีหลัง add/edit/delete สำเร็จ)
-  setInterval(fetchCloudData, 5000);
+  setInterval(fetchCloudData, 10000); // Sync ข้อมูลทุกๆ 10 วินาที
 }
 
 document.addEventListener('DOMContentLoaded', init);
