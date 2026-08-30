@@ -11,203 +11,232 @@
 </head>
 <body>
 
-<svg style="display:none;">
-  <symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></symbol>
-  <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></symbol>
-  <symbol id="icon-door" viewBox="0 0 24 24"><path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"></path><path d="M2 20h20"></path><circle cx="14" cy="12" r="1"></circle></symbol>
-  <symbol id="icon-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></symbol>
-  <symbol id="icon-location" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></symbol>
-  <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></symbol>
-  <symbol id="icon-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></symbol>
-  <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></symbol>
-  <symbol id="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
-  <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></symbol>
-</svg>
+<!-- SVG Sprite Definition (Fixed Path Syntaxes) -->
+<svg style="display: none;">
+  <symbol id="icon-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+    <polyline points="9 22 9 12 แก้ไขโครงสร้าง HTML ให้เรียบร้อยถูกต้องตามมาตรฐานเว็บเรียบร้อยแล้ว[cite: 1] โดยมีการปรับปรุงจุดบกพร่องและแก้ไขดังนี้[cite: 1]:
 
-<div id="bgOverlay"></div>
+**รายการที่แก้ไข:**
+1. **ปิด Tag ให้ครบถ้วน:** แก้ไข `<rect>` และ `<line>` ใน SVG symbol `#icon-calendar` ที่ขาดเครื่องหมายปิด self-closing tag `/`[cite: 1]
+2. **แก้ไข Attribute `for` ใน `<label>`:** เพิ่ม `for="..."` จับคู่กับ `id` ของ `<input>` และ `<select>` ทุกตัว เพื่อรองรับ Accessibility (Screen Reader) และการใช้งานที่สะดวกขึ้น[cite: 1]
+3. **กำหนด `type="button"`:** เพิ่ม `type="button"` ให้กับปุ่มกดทั้งหมด เพื่อป้องกันไม่ให้ทำงานเป็น Submit โดยไม่ตั้งใจ[cite: 1]
+4. **ความสะอาดของโค้ด:** จัดลำดับ Indentation ให้เว้นวรรคอ่านง่ายและถูกต้องตามหลัก HTML5 Standard[cite: 1]
 
-<div id="app">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-logo" id="displayLogo">
-        <svg class="icon" style="width:28px;height:28px;"><use href="#icon-door"></use></svg>
-      </div>
-      <div class="brand-text">
-        <h1 id="displayCompanyName">Book</h1>
-        <p data-i18n="subTitle">ระบบจองห้องประชุม</p>
-      </div>
-    </div>
-    <div class="topbar-actions">
-      <div class="lang-switch">
-        <button class="lang-btn" id="langTH" onclick="setLanguage('th')">TH</button>
-        <button class="lang-btn" id="langEN" onclick="setLanguage('en')">EN</button>
-      </div>
-      <button class="btn btn-glass" id="btnOpenSettings">
-        <svg class="icon"><use href="#icon-settings"></use></svg>
-        <span data-i18n="navSettings">ตั้งค่าระบบ</span>
-      </button>
-    </div>
-  </header>
+```html
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Room Booking System</title>
+  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap)" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-  <div class="layout">
-    <aside class="sidebar">
-      <button class="btn btn-glass btn-rooms-status" id="btnNavHome" onclick="switchView('home')">
-        <svg class="icon"><use href="#icon-home"></use></svg>
-        <span data-i18n="navRoomsStatus">สถานะห้องประชุม</span>
-      </button>
+  <!-- SVG Icons Library -->
+  <svg style="display:none;">
+    <symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></symbol>
+    <symbol id="icon-door" viewBox="0 0 24 24"><path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"></path><path d="M2 20h20"></path><circle cx="14" cy="12" r="1"></circle></symbol>
+    <symbol id="icon-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></symbol>
+    <symbol id="icon-location" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></symbol>
+    <symbol id="icon-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></symbol>
+    <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></symbol>
+  </svg>
 
-      <div class="sidebar-title" data-i18n="sidebarTitle">ห้องประชุมทั้งหมด</div>
-      <div class="room-list" id="roomList"></div>
-    </aside>
+  <div id="bgOverlay"></div>
 
-    <main class="main" id="mainArea"></main>
-  </div>
-</div>
-
-<!-- Modal Booking -->
-<div class="overlay" id="bookingOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <h3 data-i18n="modalBkTitle">จองห้องประชุม</h3>
-      <button class="btn btn-glass btn-icon" id="bookingModalClose">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field">
-        <label data-i18n="lblTopic">หัวข้อการประชุม</label>
-        <input type="text" id="bkTitle" placeholder="...">
-      </div>
-      <div class="field">
-        <label data-i18n="lblBooker">ชื่อผู้จอง</label>
-        <input type="text" id="bkBy" placeholder="...">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label data-i18n="lblStart">เวลาเริ่ม</label>
-          <select id="bkStart"></select>
+  <!-- App Main Layout -->
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo" id="displayLogo">
+          <svg class="icon" style="width:28px;height:28px;"><use href="#icon-door"></use></svg>
         </div>
-        <div class="field">
-          <label data-i18n="lblEnd">เวลาสิ้นสุด</label>
-          <select id="bkEnd"></select>
+        <div class="brand-text">
+          <h1 id="displayCompanyName">Book</h1>
+          <p data-i18n="subTitle">ระบบจองห้องประชุม</p>
         </div>
       </div>
-      <div class="error-text" id="bkError"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-glass" id="bkCancel" data-i18n="btnCancel">ยกเลิก</button>
-      <button class="btn btn-primary" id="bkSave" data-i18n="btnConfirm">ยืนยันการจอง</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Booking Detail -->
-<div class="overlay" id="detailOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <h3 data-i18n="modalDetailTitle">รายละเอียดการจอง</h3>
-      <button class="btn btn-glass btn-icon" id="detailModalClose">✕</button>
-    </div>
-    <div class="modal-body" id="detailBody"></div>
-    <div class="modal-foot">
-      <button class="btn btn-danger" id="detailDelete" data-i18n="btnDeleteBk">ลบรายการจอง</button>
-      <button class="btn btn-glass" id="detailClose" data-i18n="btnClose">ปิด</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Settings Page -->
-<div class="overlay" id="settingOverlay">
-  <div class="modal" style="max-width:560px;">
-    <div class="modal-head">
-      <h3>⚙️ <span data-i18n="modalSettingTitle">ตั้งค่าระบบ</span></h3>
-      <button class="btn btn-glass btn-icon" id="settingModalClose">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field">
-        <label data-i18n="lblCompany">ชื่อบริษัท / องค์กร</label>
-        <input type="text" id="cfgCompanyName">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label data-i18n="lblLogo">โลโก้บริษัท (Logo)</label>
-          <input type="file" id="cfgLogoInput" accept="image/*">
+      <div class="topbar-actions">
+        <div class="lang-switch">
+          <button type="button" class="lang-btn" id="langTH" onclick="setLanguage('th')">TH</button>
+          <button type="button" class="lang-btn" id="langEN" onclick="setLanguage('en')">EN</button>
         </div>
-        <div class="field">
-          <label data-i18n="lblBg">ภาพพื้นหลัง (Background)</label>
-          <input type="file" id="cfgBgInput" accept="image/*">
-        </div>
-      </div>
-      
-      <div class="field-row">
-        <div class="field">
-          <label data-i18n="lblStartHour">เวลาเริ่มทำการ</label>
-          <select id="cfgStartHour"></select>
-        </div>
-        <div class="field">
-          <label data-i18n="lblEndHour">เวลาสิ้นสุดทำการ</label>
-          <select id="cfgEndHour"></select>
-        </div>
-      </div>
-
-      <hr style="border:0; border-top:1px solid var(--glass-border); margin:4px 0;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <label style="font-size:13px; font-weight:700;" data-i18n="lblManageRooms">จัดการห้องประชุม</label>
-        <button class="btn btn-primary btn-sm" id="btnNewRoom">
-          <svg class="icon"><use href="#icon-plus"></use></svg> <span data-i18n="btnAddRoom">เพิ่มห้องใหม่</span>
+        <button type="button" class="btn btn-glass" id="btnOpenSettings">
+          <svg class="icon"><use href="#icon-settings"></use></svg>
+          <span data-i18n="navSettings">ตั้งค่าระบบ</span>
         </button>
       </div>
-      <div id="settingRoomList" style="display:flex; flex-direction:column; gap:8px;"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-primary" id="btnSaveSettings" data-i18n="btnSave">บันทึกการตั้งค่า</button>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <button type="button" class="btn btn-glass btn-rooms-status" id="btnNavHome" onclick="switchView('home')">
+          <svg class="icon"><use href="#icon-home"></use></svg>
+          <span data-i18n="navRoomsStatus">สถานะห้องประชุม</span>
+        </button>
+
+        <div class="sidebar-title" data-i18n="sidebarTitle">ห้องประชุมทั้งหมด</div>
+        <div class="room-list" id="roomList"></div>
+      </aside>
+
+      <main class="main" id="mainArea"></main>
     </div>
   </div>
-</div>
 
-<!-- Modal Add/Edit Room -->
-<div class="overlay" id="roomEditOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <h3 id="roomModalTitle" data-i18n="btnAddRoom">สร้างห้องประชุม</h3>
-      <button class="btn btn-glass btn-icon" id="roomEditModalClose">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field">
-        <label data-i18n="lblRoomImg">รูปภาพห้องประชุม</label>
-        <input type="file" id="roomImageInput" accept="image/*">
+  <!-- Modal Booking -->
+  <div class="overlay" id="bookingOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 data-i18n="modalBkTitle">จองห้องประชุม</h3>
+        <button type="button" class="btn btn-glass btn-icon" id="bookingModalClose">✕</button>
       </div>
-      <div class="field">
-        <label data-i18n="lblRoomName">ชื่อห้องประชุม</label>
-        <input type="text" id="roomName" placeholder="...">
-      </div>
-      <div class="field-row">
+      <div class="modal-body">
         <div class="field">
-          <label data-i18n="lblCap">ความจุ (คน)</label>
-          <input type="number" id="roomCapacity" placeholder="10">
+          <label for="bkTitle" data-i18n="lblTopic">หัวข้อการประชุม</label>
+          <input type="text" id="bkTitle" placeholder="...">
         </div>
         <div class="field">
-          <label data-i18n="lblLoc">สถานที่ / ชั้น</label>
-          <input type="text" id="roomLocation" placeholder="...">
+          <label for="bkBy" data-i18n="lblBooker">ชื่อผู้จอง</label>
+          <input type="text" id="bkBy" placeholder="...">
         </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="bkStart" data-i18n="lblStart">เวลาเริ่ม</label>
+            <select id="bkStart"></select>
+          </div>
+          <div class="field">
+            <label for="bkEnd" data-i18n="lblEnd">เวลาสิ้นสุด</label>
+            <select id="bkEnd"></select>
+          </div>
+        </div>
+        <div class="error-text" id="bkError"></div>
       </div>
-      <div class="field">
-        <label data-i18n="lblSlotDuration">ระยะเวลาการจองขั้นต่ำ (นาที)</label>
-        <select id="roomSlotStep">
-          <option value="15">15 นาที</option>
-          <option value="30" selected>30 นาที</option>
-          <option value="45">45 นาที</option>
-          <option value="60">60 นาที (1 ชม.)</option>
-        </select>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-glass" id="bkCancel" data-i18n="btnCancel">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" id="bkSave" data-i18n="btnConfirm">ยืนยันการจอง</button>
       </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-glass" id="roomEditCancel" data-i18n="btnCancel">ยกเลิก</button>
-      <button class="btn btn-primary" id="roomEditSave" data-i18n="btnSaveRoom">บันทึกห้องประชุม</button>
     </div>
   </div>
-</div>
 
-<div id="toast"></div>
+  <!-- Modal Booking Detail -->
+  <div class="overlay" id="detailOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 data-i18n="modalDetailTitle">รายละเอียดการจอง</h3>
+        <button type="button" class="btn btn-glass btn-icon" id="detailModalClose">✕</button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-danger" id="detailDelete" data-i18n="btnDeleteBk">ลบรายการจอง</button>
+        <button type="button" class="btn btn-glass" id="detailClose" data-i18n="btnClose">ปิด</button>
+      </div>
+    </div>
+  </div>
 
-<script src="app.js"></script>
+  <!-- Modal Settings Page -->
+  <div class="overlay" id="settingOverlay">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-head">
+        <h3>⚙️ <span data-i18n="modalSettingTitle">ตั้งค่าระบบ</span></h3>
+        <button type="button" class="btn btn-glass btn-icon" id="settingModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="cfgCompanyName" data-i18n="lblCompany">ชื่อบริษัท / องค์กร</label>
+          <input type="text" id="cfgCompanyName">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="cfgLogoInput" data-i18n="lblLogo">โลโก้บริษัท (Logo)</label>
+            <input type="file" id="cfgLogoInput" accept="image/*">
+          </div>
+          <div class="field">
+            <label for="cfgBgInput" data-i18n="lblBg">ภาพพื้นหลัง (Background)</label>
+            <input type="file" id="cfgBgInput" accept="image/*">
+          </div>
+        </div>
+        
+        <div class="field-row">
+          <div class="field">
+            <label for="cfgStartHour" data-i18n="lblStartHour">เวลาเริ่มทำการ</label>
+            <select id="cfgStartHour"></select>
+          </div>
+          <div class="field">
+            <label for="cfgEndHour" data-i18n="lblEndHour">เวลาสิ้นสุดทำการ</label>
+            <select id="cfgEndHour"></select>
+          </div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:12px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <label style="font-size:13px; font-weight:700;" data-i18n="lblManageRooms">จัดการห้องประชุม</label>
+          <button type="button" class="btn btn-primary btn-sm" id="btnNewRoom">
+            <svg class="icon"><use href="#icon-plus"></use></svg> <span data-i18n="btnAddRoom">เพิ่มห้องใหม่</span>
+          </button>
+        </div>
+        <div id="settingRoomList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-primary" id="btnSaveSettings" data-i18n="btnSave">บันทึกการตั้งค่า</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Add/Edit Room -->
+  <div class="overlay" id="roomEditOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="roomModalTitle" data-i18n="btnAddRoom">สร้างห้องประชุม</h3>
+        <button type="button" class="btn btn-glass btn-icon" id="roomEditModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="roomImageInput" data-i18n="lblRoomImg">รูปภาพห้องประชุม</label>
+          <input type="file" id="roomImageInput" accept="image/*">
+        </div>
+        <div class="field">
+          <label for="roomName" data-i18n="lblRoomName">ชื่อห้องประชุม</label>
+          <input type="text" id="roomName" placeholder="...">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="roomCapacity" data-i18n="lblCap">ความจุ (คน)</label>
+            <input type="number" id="roomCapacity" placeholder="10">
+          </div>
+          <div class="field">
+            <label for="roomLocation" data-i18n="lblLoc">สถานที่ / ชั้น</label>
+            <input type="text" id="roomLocation" placeholder="...">
+          </div>
+        </div>
+        <div class="field">
+          <label for="roomSlotStep" data-i18n="lblSlotDuration">ระยะเวลาการจองขั้นต่ำ (นาที)</label>
+          <select id="roomSlotStep">
+            <option value="15">15 นาที</option>
+            <option value="30" selected>30 นาที</option>
+            <option value="45">45 นาที</option>
+            <option value="60">60 นาที (1 ชม.)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-glass" id="roomEditCancel" data-i18n="btnCancel">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" id="roomEditSave" data-i18n="btnSaveRoom">บันทึกห้องประชุม</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="app.js"></script>
 </body>
 </html>
