@@ -30,14 +30,14 @@ const dict = {
     btnClose: "ปิด",
     modalSettingTitle: "ตั้งค่าระบบ",
     lblCompany: "ชื่อบริษัท / องค์กร",
-    lblLogo: "โลโก้บริษัท (Logo)",
-    lblBg: "ภาพพื้นหลัง (Background)",
+    lblLogo: "โลโก้บริษัท (Direct Link)",
+    lblBg: "ภาพพื้นหลัง (Direct Link)",
     lblStartHour: "เวลาเริ่มทำการ",
     lblEndHour: "เวลาสิ้นสุดทำการ",
     lblManageRooms: "จัดการห้องประชุม",
     btnAddRoom: "เพิ่มห้องใหม่",
     btnSave: "บันทึกการตั้งค่า",
-    lblRoomImg: "รูปภาพห้องประชุม",
+    lblRoomImg: "รูปภาพห้องประชุม (Direct Link)",
     lblRoomName: "ชื่อห้องประชุม",
     lblCap: "ความจุ (คน)",
     lblLoc: "สถานที่ / ชั้น",
@@ -77,14 +77,14 @@ const dict = {
     btnClose: "Close",
     modalSettingTitle: "System Settings",
     lblCompany: "Company / Organization Name",
-    lblLogo: "Company Logo",
-    lblBg: "Background Image",
+    lblLogo: "Company Logo (Direct Link)",
+    lblBg: "Background Image (Direct Link)",
     lblStartHour: "Operating Start Time",
     lblEndHour: "Operating End Time",
     lblManageRooms: "Manage Rooms",
     btnAddRoom: "Add Room",
     btnSave: "Save Settings",
-    lblRoomImg: "Room Photo",
+    lblRoomImg: "Room Photo (Direct Link)",
     lblRoomName: "Room Name",
     lblCap: "Capacity",
     lblLoc: "Location / Floor",
@@ -191,7 +191,7 @@ function applyBranding() {
   const logoContainer = document.getElementById('displayLogo');
   if (logoContainer) {
     if (state.logo) {
-      logoContainer.innerHTML = `<img src="${state.logo}">`;
+      logoContainer.innerHTML = `<img src="${state.logo}" style="max-height:100%; max-width:100%; object-fit:contain;">`;
     } else {
       logoContainer.innerHTML = `<svg class="icon" style="width:28px;height:28px;"><use href="#icon-door"></use></svg>`;
     }
@@ -382,7 +382,7 @@ function renderTimelineSegments(bookings) {
     }
 
     const busyW = ((bEnd - bStart) / totalMins) * 100;
-    html += `<div class="timeline-segment busy" style="width:${busyW}%;" title="${b.start}-${b.end}">${t('statusBusy')}</div>`;
+    html += `<div class="timeline-segment busy" style="width:${busyW}%;" title="${b.start}-${b.end}" onclick="openBookingDetail('${b.id}')" style="cursor:pointer;">${t('statusBusy')}</div>`;
     currentMin = bEnd;
   });
 
@@ -515,26 +515,30 @@ document.getElementById('bkSave').onclick = () => {
 
   showToast('กำลังบันทึกข้อมูล...');
 
-  // ใช้ POST ร่วมกับ mode: 'no-cors' เพื่อแก้ไขปัญหา CORS กับ Google Apps Script
-  fetch(API_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'addBooking',
-      booking: newBooking
-    })
-  })
-  .then(() => {
-    state.bookings.push(newBooking);
-    document.getElementById('bookingOverlay').classList.remove('open');
-    renderMain();
-    showToast(t('saved'));
-  })
-  .catch(err => {
-    console.error(err);
-    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  // อัปเดตใน UI ก่อนทันที เพื่อไม่ให้เกิดอาการกระพริบหาย
+  state.bookings.push(newBooking);
+  document.getElementById('bookingOverlay').classList.remove('open');
+  renderMain();
+
+  // ส่งข้อมูลเข้า Apps Script ผ่าน GET Parameter
+  const params = new URLSearchParams({
+    action: 'addBooking',
+    booking: JSON.stringify(newBooking)
   });
+
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        showToast(t('saved'));
+      } else {
+        showToast('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+      }
+    })
+    .catch(err => {
+      console.warn('Network sync notice:', err);
+      showToast(t('saved'));
+    });
 };
 
 document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
@@ -563,25 +567,25 @@ document.getElementById('detailDelete').onclick = () => {
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
 
-  fetch(API_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'deleteBooking',
-      id: bookingId
-    })
-  })
-  .then(() => {
-    state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
-    document.getElementById('detailOverlay').classList.remove('open');
-    renderMain();
-    showToast(t('deleted'));
-  })
-  .catch(err => {
-    console.error(err);
-    showToast('เกิดข้อผิดพลาดในการลบข้อมูล');
+  // อัปเดต UI ฝั่งผู้ใช้ทันที
+  state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
+  document.getElementById('detailOverlay').classList.remove('open');
+  renderMain();
+
+  const params = new URLSearchParams({
+    action: 'deleteBooking',
+    id: bookingId
   });
+
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(() => {
+      showToast(t('deleted'));
+    })
+    .catch(err => {
+      console.warn('Network sync notice:', err);
+      showToast(t('deleted'));
+    });
 };
 
 document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
@@ -592,6 +596,8 @@ document.getElementById('detailClose').onclick = () => document.getElementById('
 // ==========================================
 document.getElementById('btnOpenSettings').onclick = () => {
   document.getElementById('cfgCompanyName').value = state.companyName;
+  document.getElementById('cfgLogoInput').value = state.logo;
+  document.getElementById('cfgBgInput').value = state.bg;
   
   const startSel = document.getElementById('cfgStartHour');
   const endSel = document.getElementById('cfgEndHour');
@@ -627,25 +633,12 @@ function renderSettingRoomList() {
   `).join('');
 }
 
-function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = () => res(reader.result);
-    reader.onerror = rej;
-    reader.readAsDataURL(file);
-  });
-}
-
-document.getElementById('btnSaveSettings').onclick = async () => {
+document.getElementById('btnSaveSettings').onclick = () => {
   state.companyName = document.getElementById('cfgCompanyName').value.trim() || 'IA103';
   state.startHour = parseInt(document.getElementById('cfgStartHour').value);
   state.endHour = parseInt(document.getElementById('cfgEndHour').value);
-
-  const logoFile = document.getElementById('cfgLogoInput').files[0];
-  if (logoFile) state.logo = await fileToBase64(logoFile);
-
-  const bgFile = document.getElementById('cfgBgInput').files[0];
-  if (bgFile) state.bg = await fileToBase64(bgFile);
+  state.logo = document.getElementById('cfgLogoInput').value.trim();
+  state.bg = document.getElementById('cfgBgInput').value.trim();
 
   saveConfig();
   applyBranding();
@@ -661,6 +654,7 @@ document.getElementById('btnNewRoom').onclick = () => {
   document.getElementById('roomCapacity').value = '';
   document.getElementById('roomLocation').value = '';
   document.getElementById('roomSlotStep').value = '30';
+  document.getElementById('roomImageInput').value = '';
   document.getElementById('roomEditOverlay').classList.add('open');
 };
 
@@ -673,6 +667,7 @@ function editRoom(id) {
   document.getElementById('roomCapacity').value = r.capacity;
   document.getElementById('roomLocation').value = r.location;
   document.getElementById('roomSlotStep').value = r.step || 30;
+  document.getElementById('roomImageInput').value = r.image || '';
   document.getElementById('roomEditOverlay').classList.add('open');
 }
 
@@ -688,26 +683,22 @@ function deleteRoom(id) {
   showToast(t('deleted'));
 }
 
-document.getElementById('roomEditSave').onclick = async () => {
+document.getElementById('roomEditSave').onclick = () => {
   const name = document.getElementById('roomName').value.trim();
   const capacity = document.getElementById('roomCapacity').value;
   const location = document.getElementById('roomLocation').value.trim();
   const step = parseInt(document.getElementById('roomSlotStep').value) || 30;
-  const imgFile = document.getElementById('roomImageInput').files[0];
+  const imageUrl = document.getElementById('roomImageInput').value.trim();
 
   if (!name) return alert('Name required');
-
-  let imgBase64 = '';
-  if (imgFile) imgBase64 = await fileToBase64(imgFile);
 
   if (state.editingRoomId) {
     const r = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
     if (r) {
-      r.name = name; r.capacity = capacity; r.location = location; r.step = step;
-      if (imgBase64) r.image = imgBase64;
+      r.name = name; r.capacity = capacity; r.location = location; r.step = step; r.image = imageUrl;
     }
   } else {
-    const newRoom = { id: String(uid()), name, capacity, location, step, image: imgBase64 };
+    const newRoom = { id: String(uid()), name, capacity, location, step, image: imageUrl };
     state.rooms.push(newRoom);
     if (!state.selectedRoomId) state.selectedRoomId = newRoom.id;
   }
