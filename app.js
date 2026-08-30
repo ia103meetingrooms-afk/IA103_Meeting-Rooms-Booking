@@ -109,7 +109,7 @@ let state = {
   bg: localStorage.getItem('cfg_bg') || '',
   startHour: parseInt(localStorage.getItem('cfg_startHour')) || 8,
   endHour: parseInt(localStorage.getItem('cfg_endHour')) || 19,
-  user: JSON.parse(localStorage.getItem('cfg_user') || 'null'), // Remember Me Session
+  user: JSON.parse(localStorage.getItem('cfg_user') || 'null'),
   rooms: [],
   bookings: [],
   selectedRoomId: null,
@@ -236,14 +236,13 @@ function updateUserUI() {
     if (userBadge) {
       userBadge.textContent = `${state.user.name || state.user.username} (${state.user.role.toUpperCase()})`;
     }
-    // เฉพาะ Admin เท่านั้นที่จะเห็นปุ่มตั้งค่าระบบ
     if (settingsBtn) settingsBtn.style.display = state.user.role === 'admin' ? 'inline-flex' : 'none';
     document.getElementById('loginOverlay').classList.remove('open');
   } else {
     if (loginBtn) loginBtn.style.display = 'inline-flex';
     if (userContainer) userContainer.style.display = 'none';
     if (settingsBtn) settingsBtn.style.display = 'none';
-    openLoginModal(); // หากยังไม่ Login ให้เปิดหน้า Login บังคับไว้ก่อน
+    openLoginModal();
   }
 }
 
@@ -254,10 +253,10 @@ function openLoginModal() {
   document.getElementById('loginOverlay').classList.add('open');
 }
 
-// ปิดปุ่ม ✕ หน้า Login เพื่อบังคับ Login ก่อนเข้าใช้ระบบ
 const loginCloseBtn = document.getElementById('loginModalClose');
 if (loginCloseBtn) loginCloseBtn.style.display = 'none';
 
+// *** แก้ไขจุดสำคัญ: เปลี่ยน Login จาก GET ไปใช้ POST แบบ text/plain ***
 document.getElementById('btnLoginSubmit').onclick = () => {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
@@ -270,9 +269,12 @@ document.getElementById('btnLoginSubmit').onclick = () => {
   }
 
   showToast('กำลังตรวจสอบสิทธิ์...');
-  const params = new URLSearchParams({ action: 'login', username, password });
 
-  fetch(`${API_URL}?${params.toString()}`)
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'login', username, password })
+  })
     .then(res => res.json())
     .then(data => {
       if (data.status === 'success') {
@@ -286,7 +288,8 @@ document.getElementById('btnLoginSubmit').onclick = () => {
         errEl.classList.add('show');
       }
     })
-    .catch(() => {
+    .catch((err) => {
+      console.error('Login Error:', err);
       errEl.textContent = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้';
       errEl.classList.add('show');
     });
@@ -483,7 +486,7 @@ function renderTimelineSegments(bookings) {
     }
 
     const busyW = ((bEnd - bStart) / totalMins) * 100;
-    html += `<div class="timeline-segment busy" style="width:${busyW}%;" title="${b.start}-${b.end}" onclick="openBookingDetail('${b.id}')" style="cursor:pointer;">${t('statusBusy')}</div>`;
+    html += `<div class="timeline-segment busy" style="width:${busyW}%; cursor:pointer;" title="${b.start}-${b.end}" onclick="openBookingDetail('${b.id}')">${t('statusBusy')}</div>`;
     currentMin = bEnd;
   });
 
@@ -550,7 +553,7 @@ function renderGrid(room) {
 }
 
 // ==========================================
-// Booking Submission (Real-time Fixes)
+// Booking Submission
 // ==========================================
 function openBookingModal(roomId, startSlot) {
   if (!state.user) return openLoginModal();
@@ -628,14 +631,15 @@ document.getElementById('bkSave').onclick = () => {
       if (data.status === 'success') {
         document.getElementById('bookingOverlay').classList.remove('open');
         showToast(t('saved'));
-        fetchCloudData(); // Sync ดึงข้อมูลทันทีเพื่อแสดงผล Real-time
+        fetchCloudData();
       } else {
         errEl.textContent = data.message || t('conflictErr');
         errEl.classList.add('show');
         fetchCloudData();
       }
     })
-    .catch(() => {
+    .catch((err) => {
+      console.error('Booking Error:', err);
       errEl.textContent = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
       errEl.classList.add('show');
     });
@@ -689,7 +693,10 @@ document.getElementById('detailDelete').onclick = () => {
         showToast('ลบข้อมูลไม่สำเร็จ');
       }
     })
-    .catch(() => showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ'));
+    .catch((err) => {
+      console.error('Delete Error:', err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    });
 };
 
 document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
@@ -853,7 +860,6 @@ function init() {
   updateUserUI();
   fetchCloudData();
   
-  // ตั้งค่า Real-time Auto Sync ทุกๆ 10 วินาที
   setInterval(fetchCloudData, 10000);
 }
 
