@@ -1,7 +1,7 @@
 // ==========================================
 // CONFIGURATION & SUPABASE SETUP
 // ==========================================
-const SUPABASE_URL = "https://gsovpscrhwykvxpkrzxr.supabase.co";
+const SUPABASE_URL = "gsovpscrhwykvxpkrzxr";
 const SUPABASE_ANON_KEY = "ap-southeast-1";
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -11,8 +11,6 @@ const dict = {
     subTitle: "ระบบจองห้องประชุม",
     navRoomsStatus: "สถานะห้องประชุม",
     navSettings: "ตั้งค่าระบบ",
-    btnLogin: "เข้าสู่ระบบ",
-    modalLoginTitle: "เข้าสู่ระบบ",
     sidebarTitle: "ห้องประชุมทั้งหมด",
     prev: "‹ ย้อนหลัง",
     next: "ถัดไป ›",
@@ -60,8 +58,6 @@ const dict = {
     subTitle: "Room Booking System",
     navRoomsStatus: "Rooms Status",
     navSettings: "Settings",
-    btnLogin: "Login",
-    modalLoginTitle: "Login to System",
     sidebarTitle: "MEETING ROOMS",
     prev: "‹ Prev",
     next: "Next ›",
@@ -115,7 +111,6 @@ let state = {
   bg: localStorage.getItem('cfg_bg') || '',
   startHour: parseInt(localStorage.getItem('cfg_startHour')) || 8,
   endHour: parseInt(localStorage.getItem('cfg_endHour')) || 19,
-  user: null,
   rooms: [],
   bookings: [],
   selectedRoomId: null,
@@ -222,94 +217,6 @@ function applyBranding() {
     const bgUrl = convertToDirectLink(state.bg);
     bgOverlay.style.backgroundImage = bgUrl ? `url('${bgUrl}')` : 'none';
   }
-
-  updateUserUI();
-}
-
-// ==========================================
-// Authentication & Supabase Integration
-// ==========================================
-async function updateUserUI() {
-  const loginBtn = document.getElementById('btnLoginNav');
-  const userContainer = document.getElementById('userInfoContainer');
-  const userBadge = document.getElementById('userBadge');
-  const settingsBtn = document.getElementById('btnOpenSettings');
-
-  if (state.user) {
-    if (loginBtn) loginBtn.style.display = 'none';
-    if (userContainer) userContainer.style.display = 'flex';
-    if (userBadge) {
-      userBadge.textContent = `${state.user.full_name || state.user.email} (${(state.user.role || 'user').toUpperCase()})`;
-    }
-    if (settingsBtn) settingsBtn.style.display = state.user.role === 'admin' ? 'inline-flex' : 'none';
-    document.getElementById('loginOverlay').classList.remove('open');
-  } else {
-    if (loginBtn) loginBtn.style.display = 'inline-flex';
-    if (userContainer) userContainer.style.display = 'none';
-    if (settingsBtn) settingsBtn.style.display = 'none';
-  }
-}
-
-function openLoginModal() {
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginPassword').value = '';
-  document.getElementById('loginError').classList.remove('show');
-  document.getElementById('loginOverlay').classList.add('open');
-}
-
-document.getElementById('loginModalClose').onclick = () => {
-  document.getElementById('loginOverlay').classList.remove('open');
-};
-
-document.getElementById('btnLoginSubmit').onclick = async () => {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
-  const errEl = document.getElementById('loginError');
-
-  if (!email || !password) {
-    errEl.textContent = 'กรุณากรอกอีเมลและรหัสผ่าน';
-    errEl.classList.add('show');
-    return;
-  }
-
-  showToast('กำลังเข้าสู่ระบบ...');
-
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    errEl.textContent = error.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-    errEl.classList.add('show');
-    return;
-  }
-
-  await fetchUserProfile(data.user);
-  showToast(`ยินดีต้อนรับ ${state.user.full_name || state.user.email}`);
-};
-
-async function fetchUserProfile(authUser) {
-  if (!authUser) return;
-  
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', authUser.id)
-    .single();
-
-  state.user = {
-    id: authUser.id,
-    email: authUser.email,
-    full_name: data ? data.full_name : authUser.email,
-    role: data ? data.role : 'user'
-  };
-
-  updateUserUI();
-}
-
-async function logout() {
-  await supabase.auth.signOut();
-  state.user = null;
-  updateUserUI();
-  showToast('ออกจากระบบเรียบร้อย');
 }
 
 // ==========================================
@@ -566,14 +473,12 @@ function renderGrid(room) {
 // Booking Logic & Supabase Sync
 // ==========================================
 function openBookingModal(roomId, startSlot) {
-  if (!state.user) return openLoginModal();
-
   const room = state.rooms.find(r => String(r.id) === String(roomId));
   const step = room ? (Number(room.step) || 30) : 30;
 
   state.pendingSlot = { roomId: String(roomId), step };
   document.getElementById('bkTitle').value = '';
-  document.getElementById('bkBy').value = state.user ? (state.user.full_name || state.user.email) : '';
+  document.getElementById('bkBy').value = '';
   document.getElementById('bkError').classList.remove('show');
 
   const slots = generateTimeSlots(step);
@@ -633,8 +538,7 @@ document.getElementById('bkSave').onclick = async () => {
         start_time: start,
         end_time: end,
         title: title,
-        booked_by: by,
-        user_id: state.user ? state.user.id : null
+        booked_by: by
       }
     ]);
 
@@ -660,9 +564,7 @@ function openBookingDetail(bookingId) {
 
   const deleteBtn = document.getElementById('detailDelete');
   if (deleteBtn) {
-    const isOwner = state.user && (state.user.id === b.userId || state.user.full_name === b.bookedBy);
-    const isAdmin = state.user && state.user.role === 'admin';
-    deleteBtn.style.display = (isAdmin || isOwner) ? 'inline-flex' : 'none';
+    deleteBtn.style.display = 'inline-flex';
   }
 
   document.getElementById('detailBody').innerHTML = `
@@ -700,13 +602,9 @@ document.getElementById('detailModalClose').onclick = () => document.getElementB
 document.getElementById('detailClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 
 // ==========================================
-// Settings Operations (Admin Only)
+// Settings Operations
 // ==========================================
 document.getElementById('btnOpenSettings').onclick = () => {
-  if (!state.user || state.user.role !== 'admin') {
-    return alert('เมนูนี้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น');
-  }
-
   document.getElementById('cfgCompanyName').value = state.companyName;
   document.getElementById('cfgLogoInput').value = state.logo;
   document.getElementById('cfgBgInput').value = state.bg;
@@ -837,8 +735,7 @@ async function fetchCloudData() {
       start: b.start_time ? b.start_time.slice(0, 5) : '',
       end: b.end_time ? b.end_time.slice(0, 5) : '',
       title: b.title,
-      bookedBy: b.booked_by,
-      userId: b.user_id
+      bookedBy: b.booked_by
     }));
   }
 
@@ -860,12 +757,6 @@ function initRealtime() {
 async function init() {
   updateI18nTexts();
   applyBranding();
-
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    await fetchUserProfile(session.user);
-  }
-
   await fetchCloudData();
   initRealtime();
 }
