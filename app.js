@@ -510,10 +510,22 @@ document.getElementById('bkSave').onclick = () => {
 
   showToast('กำลังบันทึกข้อมูล...');
   
-  fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'addBooking', booking: newBooking })
-  })
+fetch(API_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+  body: JSON.stringify({ action: 'addBooking', booking: newBooking })
+})
+.then(res => res.json())
+.then(data => {
+  state.bookings.push(newBooking);
+  document.getElementById('bookingOverlay').classList.remove('open');
+  renderMain();
+  showToast(t('saved'));
+})
+.catch(err => {
+  console.error(err);
+  showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+});
   .then(res => res.json())
   .then(() => {
     state.bookings.push(newBooking);
@@ -552,11 +564,22 @@ document.getElementById('detailDelete').onclick = () => {
   if (!confirm('Confirm delete?')) return;
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
-  
   fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'deleteBooking', id: bookingId })
-  })
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+  body: JSON.stringify({ action: 'deleteBooking', id: bookingId })
+})
+.then(res => res.json())
+.then(data => {
+  state.bookings = state.bookings.filter(b => b.id !== bookingId);
+  document.getElementById('detailOverlay').classList.remove('open');
+  renderMain();
+  showToast(t('deleted'));
+})
+.catch(err => {
+  console.error(err);
+  showToast('เกิดข้อผิดพลาดในการส่งข้อมูล');
+});
   .then(res => res.json())
   .then(() => {
     state.bookings = state.bookings.filter(b => b.id !== bookingId);
