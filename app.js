@@ -117,8 +117,26 @@ let state = {
   selectedDate: fmtDate(new Date()),
   editingRoomId: null,
   pendingSlot: null,
-  activeDetailId: null
+  activeDetailId: null,
+  // ระบบ "pending sync": เก็บรายการที่เพิ่ง add/edit/delete ในเครื่องนี้ไว้ชั่วคราว
+  // เพื่อไม่ให้ผลลัพธ์จาก fetchCloudData() (ที่ Sheet อาจยังบันทึกไม่ทัน) มาเขียนทับจน UI หายวับ
+  pendingBookings: {},     // id -> { data, ts }
+  pendingDeletes: {},      // id -> ts
+  pendingRooms: {},        // id -> { data, ts }
+  pendingRoomDeletes: {}   // id -> ts
 };
+
+const PENDING_TTL_MS = 20000; // เก็บสถานะ optimistic ไว้สูงสุด 20 วิ หลังจากนั้นให้ข้อมูลจริงจาก Sheet ชนะเสมอ
+
+function postToApi(payload) {
+  // ใช้ Content-Type: text/plain เพื่อเลี่ยง CORS preflight ของ Apps Script Web App
+  // (Code.gs อ่านค่าจาก e.postData.contents แล้ว JSON.parse เองอยู่แล้ว)
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  }).then(res => res.json());
+}
 
 // ==========================================
 // 2. Helper Functions
@@ -515,29 +533,32 @@ document.getElementById('bkSave').onclick = () => {
 
   showToast('กำลังบันทึกข้อมูล...');
 
-  // อัปเดตใน UI ก่อนทันที เพื่อไม่ให้เกิดอาการกระพริบหาย
+  // อัปเดตใน UI ก่อนทันที (optimistic) และขึ้นทะเบียนเป็น pending
+  // เพื่อไม่ให้ fetchCloudData() รอบถัดไปเขียนทับจนรายการนี้หายวับก่อน Sheet จะบันทึกเสร็จ
+  state.pendingBookings[newBooking.id] = { data: newBooking, ts: Date.now() };
   state.bookings.push(newBooking);
   document.getElementById('bookingOverlay').classList.remove('open');
   renderMain();
 
-  // ส่งข้อมูลเข้า Apps Script ผ่าน GET Parameter
-  const params = new URLSearchParams({
-    action: 'addBooking',
-    booking: JSON.stringify(newBooking)
-  });
-
-  fetch(`${API_URL}?${params.toString()}`)
-    .then(res => res.json())
+  postToApi({ action: 'addBooking', booking: newBooking })
     .then(data => {
       if (data.status === 'success') {
         showToast(t('saved'));
       } else {
-        showToast('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+        // เซิร์ฟเวอร์ปฏิเสธ (เช่นมีคนจองเวลาเดียวกันไปก่อนจากเครื่องอื่น) -> ย้อนกลับ UI
+        delete state.pendingBookings[newBooking.id];
+        state.bookings = state.bookings.filter(b => b.id !== newBooking.id);
+        showToast(data.message === 'conflict' ? t('conflictErr') : 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+        renderMain();
       }
+      // ดึงข้อมูลล่าสุดทันที ไม่ต้องรอรอบ poll ถัดไป ให้ผู้ใช้คนอื่นเห็นแบบเรียลไทม์
+      fetchCloudData();
     })
     .catch(err => {
       console.warn('Network sync notice:', err);
-      showToast(t('saved'));
+      // ไม่ทราบผลจริงจากเซิร์ฟเวอร์ (เช่นเน็ตหลุด) - ปล่อยให้รายการ pending อยู่จนกว่าจะหมดอายุ
+      // หรือ poll ครั้งถัดไปยืนยันว่าบันทึกสำเร็จจริง แทนที่จะฟันธงว่าสำเร็จทันที
+      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
     });
 };
 
@@ -567,24 +588,20 @@ document.getElementById('detailDelete').onclick = () => {
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
 
-  // อัปเดต UI ฝั่งผู้ใช้ทันที
+  // อัปเดต UI ฝั่งผู้ใช้ทันที และขึ้นทะเบียนเป็น pending delete กัน poll เอากลับมาแสดงซ้ำก่อนลบเสร็จจริง
+  state.pendingDeletes[bookingId] = Date.now();
   state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
   document.getElementById('detailOverlay').classList.remove('open');
   renderMain();
 
-  const params = new URLSearchParams({
-    action: 'deleteBooking',
-    id: bookingId
-  });
-
-  fetch(`${API_URL}?${params.toString()}`)
-    .then(res => res.json())
+  postToApi({ action: 'deleteBooking', id: bookingId })
     .then(() => {
       showToast(t('deleted'));
+      fetchCloudData();
     })
     .catch(err => {
       console.warn('Network sync notice:', err);
-      showToast(t('deleted'));
+      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
     });
 };
 
@@ -673,14 +690,21 @@ function editRoom(id) {
 
 function deleteRoom(id) {
   if (!confirm('Delete room?')) return;
+  state.pendingRoomDeletes[id] = Date.now();
   state.rooms = state.rooms.filter(r => String(r.id) !== String(id));
   state.bookings = state.bookings.filter(b => String(b.roomId) !== String(id));
   if (String(state.selectedRoomId) === String(id)) state.selectedRoomId = state.rooms[0]?.id || null;
-  saveConfig();
   renderSettingRoomList();
   renderSidebar();
   renderMain();
   showToast(t('deleted'));
+
+  postToApi({ action: 'deleteRoom', id })
+    .then(() => fetchCloudData())
+    .catch(err => {
+      console.warn('Network sync notice:', err);
+      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
+    });
 }
 
 document.getElementById('roomEditSave').onclick = () => {
@@ -692,23 +716,37 @@ document.getElementById('roomEditSave').onclick = () => {
 
   if (!name) return alert('Name required');
 
+  let room, isNew = false;
   if (state.editingRoomId) {
-    const r = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
-    if (r) {
-      r.name = name; r.capacity = capacity; r.location = location; r.step = step; r.image = imageUrl;
+    room = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
+    if (room) {
+      room.name = name; room.capacity = capacity; room.location = location; room.step = step; room.image = imageUrl;
     }
   } else {
-    const newRoom = { id: String(uid()), name, capacity, location, step, image: imageUrl };
-    state.rooms.push(newRoom);
-    if (!state.selectedRoomId) state.selectedRoomId = newRoom.id;
+    room = { id: String(uid()), name, capacity, location, step, image: imageUrl };
+    state.rooms.push(room);
+    isNew = true;
+    if (!state.selectedRoomId) state.selectedRoomId = room.id;
   }
 
-  saveConfig();
+  // ขึ้นทะเบียน pending กันหายวับ เหมือนกับ booking
+  state.pendingRooms[room.id] = { data: room, ts: Date.now() };
+
   renderSettingRoomList();
   renderSidebar();
   renderMain();
   document.getElementById('roomEditOverlay').classList.remove('open');
   showToast(t('saved'));
+
+  postToApi({ action: isNew ? 'addRoom' : 'updateRoom', room })
+    .then(data => {
+      if (data.status !== 'success') showToast('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์');
+      fetchCloudData();
+    })
+    .catch(err => {
+      console.warn('Network sync notice:', err);
+      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังลองใหม่...');
+    });
 };
 
 document.getElementById('roomEditModalClose').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
@@ -717,15 +755,44 @@ document.getElementById('roomEditCancel').onclick = () => document.getElementByI
 // ==========================================
 // 6. Fetch Data & Initialize
 // ==========================================
+// รวมข้อมูลจริงจาก Sheet เข้ากับรายการที่เพิ่งแก้ในเครื่องนี้แต่ยัง sync ไม่เสร็จ (pending)
+// - ถ้า id ที่ pending ปรากฏใน server แล้ว -> ถือว่า sync สำเร็จ เอา pending flag ออก ใช้ค่าจาก server
+// - ถ้ายังไม่ปรากฏและยังไม่เกิน TTL -> คงค่าที่เพิ่ง add/edit ไว้ใน UI ก่อน กันไม่ให้หายวับ
+// - ถ้าเกิน TTL แล้วยังไม่ปรากฏ -> ปล่อยให้ข้อมูลจริงจาก server ชนะ (เผื่อ request เดิม fail ไปแล้วจริง ๆ)
+function mergeWithPending(serverList, pendingAddMap, pendingDeleteMap) {
+  const now = Date.now();
+
+  Object.keys(pendingAddMap).forEach(id => {
+    const onServer = serverList.find(x => String(x.id) === id);
+    if (onServer || now - pendingAddMap[id].ts > PENDING_TTL_MS) delete pendingAddMap[id];
+  });
+  Object.keys(pendingDeleteMap).forEach(id => {
+    const onServer = serverList.find(x => String(x.id) === id);
+    if (!onServer || now - pendingDeleteMap[id] > PENDING_TTL_MS) delete pendingDeleteMap[id];
+  });
+
+  let merged = serverList
+    .filter(x => !pendingDeleteMap[String(x.id)])
+    .map(x => pendingAddMap[String(x.id)] ? pendingAddMap[String(x.id)].data : x);
+
+  Object.keys(pendingAddMap).forEach(id => {
+    if (!merged.find(x => String(x.id) === id)) merged.push(pendingAddMap[id].data);
+  });
+
+  return merged;
+}
+
 function fetchCloudData() {
   fetch(`${API_URL}?action=getData`)
     .then(res => res.json())
     .then(data => {
       if (data && data.rooms) {
-        state.rooms = data.rooms.map(r => ({ ...r, id: String(r.id) }));
+        const serverRooms = data.rooms.map(r => ({ ...r, id: String(r.id) }));
+        state.rooms = mergeWithPending(serverRooms, state.pendingRooms, state.pendingRoomDeletes);
       }
       if (data && data.bookings) {
-        state.bookings = data.bookings.map(b => ({ ...b, id: String(b.id), roomId: String(b.roomId) }));
+        const serverBookings = data.bookings.map(b => ({ ...b, id: String(b.id), roomId: String(b.roomId) }));
+        state.bookings = mergeWithPending(serverBookings, state.pendingBookings, state.pendingDeletes);
       }
 
       if (state.rooms.length > 0 && !state.selectedRoomId) {
@@ -733,6 +800,9 @@ function fetchCloudData() {
       }
       renderSidebar();
       renderMain();
+      if (state.activeDetailId && document.getElementById('detailOverlay').classList.contains('open')) {
+        openBookingDetail(state.activeDetailId);
+      }
     })
     .catch(err => {
       console.warn('Cloud Fetch Fallback Active:', err);
@@ -745,7 +815,8 @@ function init() {
   updateI18nTexts();
   applyBranding();
   fetchCloudData();
-  setInterval(fetchCloudData, 10000);
+  // Poll ทุก 5 วิ เพื่อความ real-time ที่ดีขึ้น (ร่วมกับการ fetch ทันทีหลัง add/edit/delete สำเร็จ)
+  setInterval(fetchCloudData, 5000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
