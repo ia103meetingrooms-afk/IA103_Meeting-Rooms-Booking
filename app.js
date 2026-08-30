@@ -403,10 +403,10 @@ function changeDate(val) {
 }
 
 function renderGrid(room) {
-  const step = room.step || 30;
+  const step = Number(room.step) || 30;
   const slots = generateTimeSlots(step).slice(0, -1);
   const dayBookings = state.bookings
-    .filter(b => b.roomId === room.id && b.date === state.selectedDate)
+    .filter(b => String(b.roomId) === String(room.id) && b.date === state.selectedDate)
     .sort((a, b) => timeToMin(a.start) - timeToMin(b.start));
 
   const bookingByStart = {};
@@ -447,8 +447,8 @@ function renderGrid(room) {
 // 4. การจัดการ Modal จองห้องพัก และรายละเอียด
 // ==========================================
 function openBookingModal(roomId, startSlot) {
-  const room = state.rooms.find(r => r.id === roomId);
-  const step = room ? (room.step || 30) : 30;
+  const room = state.rooms.find(r => String(r.id) === String(roomId));
+  const step = room ? (Number(room.step) || 30) : 30;
 
   state.pendingSlot = { roomId, step };
   document.getElementById('bkTitle').value = '';
@@ -490,7 +490,7 @@ document.getElementById('bkSave').onclick = () => {
   const endMin = timeToMin(end);
 
   const conflict = state.bookings.some(b => 
-    b.roomId === state.pendingSlot.roomId &&
+    String(b.roomId) === String(state.pendingSlot.roomId) &&
     b.date === state.selectedDate &&
     !(endMin <= timeToMin(b.start) || startMin >= timeToMin(b.end))
   );
@@ -512,14 +512,19 @@ document.getElementById('bkSave').onclick = () => {
   
   fetch(API_URL, {
     method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ action: 'addBooking', booking: newBooking })
   })
   .then(res => res.json())
-  .then(() => {
-    state.bookings.push(newBooking);
-    document.getElementById('bookingOverlay').classList.remove('open');
-    renderMain();
-    showToast(t('saved'));
+  .then(res => {
+    if(res.status === 'success') {
+      state.bookings.push(newBooking);
+      document.getElementById('bookingOverlay').classList.remove('open');
+      renderMain();
+      showToast(t('saved'));
+    } else {
+      showToast('เกิดข้อผิดพลาด: ' + res.message);
+    }
   })
   .catch(err => {
     console.error(err);
@@ -532,9 +537,9 @@ document.getElementById('bkCancel').onclick = () => document.getElementById('boo
 
 function openBookingDetail(bookingId) {
   state.activeDetailId = bookingId;
-  const b = state.bookings.find(x => x.id === bookingId);
+  const b = state.bookings.find(x => String(x.id) === String(bookingId));
   if (!b) return;
-  const room = state.rooms.find(r => r.id === b.roomId);
+  const room = state.rooms.find(r => String(r.id) === String(b.roomId));
 
   document.getElementById('detailBody').innerHTML = `
     <div style="font-size:14px; line-height:1.8;">
@@ -555,14 +560,19 @@ document.getElementById('detailDelete').onclick = () => {
   
   fetch(API_URL, {
     method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ action: 'deleteBooking', id: bookingId })
   })
   .then(res => res.json())
-  .then(() => {
-    state.bookings = state.bookings.filter(b => b.id !== bookingId);
-    document.getElementById('detailOverlay').classList.remove('open');
-    renderMain();
-    showToast(t('deleted'));
+  .then(res => {
+    if(res.status === 'success') {
+      state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
+      document.getElementById('detailOverlay').classList.remove('open');
+      renderMain();
+      showToast(t('deleted'));
+    } else {
+      showToast('เกิดข้อผิดพลาด: ' + res.message);
+    }
   })
   .catch(err => {
     console.error(err);
@@ -650,7 +660,7 @@ document.getElementById('btnNewRoom').onclick = () => {
 };
 
 function editRoom(id) {
-  const r = state.rooms.find(x => x.id === id);
+  const r = state.rooms.find(x => String(x.id) === String(id));
   if (!r) return;
   state.editingRoomId = id;
   document.getElementById('roomModalTitle').textContent = 'Edit Room';
@@ -663,9 +673,9 @@ function editRoom(id) {
 
 function deleteRoom(id) {
   if (!confirm('Delete room?')) return;
-  state.rooms = state.rooms.filter(r => r.id !== id);
-  state.bookings = state.bookings.filter(b => b.roomId !== id);
-  if (state.selectedRoomId === id) state.selectedRoomId = state.rooms[0]?.id || null;
+  state.rooms = state.rooms.filter(r => String(r.id) !== String(id));
+  state.bookings = state.bookings.filter(b => String(b.roomId) !== String(id));
+  if (String(state.selectedRoomId) === String(id)) state.selectedRoomId = state.rooms[0]?.id || null;
   saveConfig();
   renderSettingRoomList();
   renderSidebar();
@@ -686,9 +696,11 @@ document.getElementById('roomEditSave').onclick = async () => {
   if (imgFile) imgBase64 = await fileToBase64(imgFile);
 
   if (state.editingRoomId) {
-    const r = state.rooms.find(x => x.id === state.editingRoomId);
-    r.name = name; r.capacity = capacity; r.location = location; r.step = step;
-    if (imgBase64) r.image = imgBase64;
+    const r = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
+    if (r) {
+      r.name = name; r.capacity = capacity; r.location = location; r.step = step;
+      if (imgBase64) r.image = imgBase64;
+    }
   } else {
     const newRoom = { id: uid(), name, capacity, location, step, image: imgBase64 };
     state.rooms.push(newRoom);
@@ -729,7 +741,6 @@ function init() {
   updateI18nTexts();
   applyBranding();
   fetchCloudData();
-  // Auto refresh ข้อมูลจาก Google Sheets ทุกๆ 5 วินาที
   setInterval(fetchCloudData, 5000);
 }
 
