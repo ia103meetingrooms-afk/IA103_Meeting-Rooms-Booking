@@ -1,7 +1,7 @@
 // ==========================================
 // 0. ตั้งค่า Google Apps Script Web App URL
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbzMzUDLrDgiOivxIpvMcfAyrp-iUaK4oAnCKGX-PAQHW-DMnwy31Si1zPlnzqnZsmpjjQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbye3mAfj40ndasJtGfUNULFveY7qkysknRtoiydz-EVoiiSuZ68uDhH0EfXUXmw3ihB/exec";
 
 // ==========================================
 // 1. ระบบ ภาษา (i18n) และ State หลัก
@@ -510,10 +510,12 @@ document.getElementById('bkSave').onclick = () => {
 
   showToast('กำลังบันทึกข้อมูล...');
   
-  fetch(API_URL, {
+fetch(API_URL, {
     method: 'POST',
+    mode: 'cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'addBooking', booking: newBooking })
+    body: JSON.stringify({ action: 'addBooking', booking: newBooking }),
+    redirect: 'follow'
   })
   .then(res => res.json())
   .then(res => {
@@ -530,7 +532,6 @@ document.getElementById('bkSave').onclick = () => {
     console.error(err);
     showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
   });
-};
 
 document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
 document.getElementById('bkCancel').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
@@ -558,10 +559,12 @@ document.getElementById('detailDelete').onclick = () => {
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
   
-  fetch(API_URL, {
+fetch(API_URL, {
     method: 'POST',
+    mode: 'cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'deleteBooking', id: bookingId })
+    body: JSON.stringify({ action: 'deleteBooking', id: bookingId }),
+    redirect: 'follow'
   })
   .then(res => res.json())
   .then(res => {
@@ -578,7 +581,6 @@ document.getElementById('detailDelete').onclick = () => {
     console.error(err);
     showToast('เกิดข้อผิดพลาดในการส่งข้อมูล');
   });
-};
 
 document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 document.getElementById('detailClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
@@ -722,12 +724,15 @@ document.getElementById('roomEditCancel').onclick = () => document.getElementByI
 // 6. ดึงข้อมูล Google Apps Script & เริ่มต้นระบบ
 // ==========================================
 function fetchCloudData() {
-  fetch(API_URL + '?action=getData')
+  fetch(API_URL + '?action=getData', {
+    method: 'GET',
+    redirect: 'follow'
+  })
     .then(res => res.json())
     .then(data => {
       if (data.rooms) state.rooms = data.rooms;
       if (data.bookings) state.bookings = data.bookings;
-      
+
       if (state.rooms.length > 0 && !state.selectedRoomId) {
         state.selectedRoomId = state.rooms[0].id;
       }
@@ -736,7 +741,6 @@ function fetchCloudData() {
     })
     .catch(err => console.error('Cloud Sync Error:', err));
 }
-
 function init() {
   updateI18nTexts();
   applyBranding();
