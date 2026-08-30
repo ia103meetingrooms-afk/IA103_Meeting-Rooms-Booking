@@ -1,39 +1,13 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Room Booking System</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<!-- SVG Sprite Definition (Fixed Path Syntaxes) -->
-<svg style="display: none;">
-  <symbol id="icon-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-    <polyline points="9 22 9 12 แก้ไขโครงสร้าง HTML ให้เรียบร้อยถูกต้องตามมาตรฐานเว็บเรียบร้อยแล้ว[cite: 1] โดยมีการปรับปรุงจุดบกพร่องและแก้ไขดังนี้[cite: 1]:
-
-**รายการที่แก้ไข:**
-1. **ปิด Tag ให้ครบถ้วน:** แก้ไข `<rect>` และ `<line>` ใน SVG symbol `#icon-calendar` ที่ขาดเครื่องหมายปิด self-closing tag `/`[cite: 1]
-2. **แก้ไข Attribute `for` ใน `<label>`:** เพิ่ม `for="..."` จับคู่กับ `id` ของ `<input>` และ `<select>` ทุกตัว เพื่อรองรับ Accessibility (Screen Reader) และการใช้งานที่สะดวกขึ้น[cite: 1]
-3. **กำหนด `type="button"`:** เพิ่ม `type="button"` ให้กับปุ่มกดทั้งหมด เพื่อป้องกันไม่ให้ทำงานเป็น Submit โดยไม่ตั้งใจ[cite: 1]
-4. **ความสะอาดของโค้ด:** จัดลำดับ Indentation ให้เว้นวรรคอ่านง่ายและถูกต้องตามหลัก HTML5 Standard[cite: 1]
-
-```html
-<!DOCTYPE html>
-<html lang="th">
-<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Room Booking System</title>
-  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap)" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
