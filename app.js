@@ -217,7 +217,7 @@ function renderSidebar() {
     return;
   }
   
-list.innerHTML = state.rooms.map(r => `
+  list.innerHTML = state.rooms.map(r => `
     <div class="room-card ${state.currentView === 'room' && String(r.id) === String(state.selectedRoomId) ? 'active' : ''}" onclick="selectRoom('${r.id}')">
       <div class="room-thumb" style="${r.image ? `background-image:url('${r.image}')` : ''}">
         ${r.image ? '' : '<svg class="icon"><use href="#icon-door"></use></svg>'}
@@ -231,6 +231,7 @@ list.innerHTML = state.rooms.map(r => `
       </div>
     </div>
   `).join('');
+}
 
 function selectRoom(id) {
   state.selectedRoomId = String(id);
@@ -253,7 +254,7 @@ function renderMain() {
     return;
   }
 
-const room = state.rooms.find(r => String(r.id) === String(state.selectedRoomId));
+  const room = state.rooms.find(r => String(r.id) === String(state.selectedRoomId));
   if (!room) {
     main.innerHTML = `<div style="text-align:center; margin:auto; color:var(--ink-soft);">${t('selectRoomPrompt')}</div>`;
     return;
@@ -303,7 +304,7 @@ const room = state.rooms.find(r => String(r.id) === String(state.selectedRoomId)
 }
 
 function renderHomeView(main) {
-  const dayBookings = state.bookings.filter(b => b.date === state.selectedDate);
+  const dayBookings = state.bookings.filter(b => String(b.date).trim() === String(state.selectedDate).trim());
   
   const scaleHours = [];
   for (let h = state.startHour; h <= state.endHour; h++) {
@@ -315,7 +316,7 @@ function renderHomeView(main) {
     </div>
   `;
   
-const roomRows = state.rooms.map(room => {
+  const roomRows = state.rooms.map(room => {
     const rBookings = dayBookings.filter(b => String(b.roomId) === String(room.id));    
     return `
       <div class="timeline-row">
@@ -401,11 +402,12 @@ function changeDate(val) {
 }
 
 function renderGrid(room) {
-const step = Number(room.step) || 30;
+  const step = Number(room.step) || 30;
   const slots = generateTimeSlots(step).slice(0, -1);
   const dayBookings = state.bookings
     .filter(b => String(b.roomId) === String(room.id) && String(b.date).trim() === String(state.selectedDate).trim())
     .sort((a, b) => timeToMin(a.start) - timeToMin(b.start));
+    
   const bookingByStart = {};
   dayBookings.forEach((b, idx) => {
     b._colorIdx = idx % 2;
@@ -447,7 +449,7 @@ function openBookingModal(roomId, startSlot) {
   const room = state.rooms.find(r => String(r.id) === String(roomId));
   const step = room ? (Number(room.step) || 30) : 30;
 
-  state.pendingSlot = { roomId, step };
+  state.pendingSlot = { roomId: String(roomId), step };
   document.getElementById('bkTitle').value = '';
   document.getElementById('bkBy').value = '';
   document.getElementById('bkError').classList.remove('show');
@@ -488,7 +490,7 @@ document.getElementById('bkSave').onclick = () => {
 
   const conflict = state.bookings.some(b => 
     String(b.roomId) === String(state.pendingSlot.roomId) &&
-    b.date === state.selectedDate &&
+    String(b.date).trim() === String(state.selectedDate).trim() &&
     !(endMin <= timeToMin(b.start) || startMin >= timeToMin(b.end))
   );
 
@@ -497,14 +499,15 @@ document.getElementById('bkSave').onclick = () => {
     errEl.classList.add('show');
     return;
   }
-const newBooking = {
+
+  const newBooking = {
     id: String(uid()),
     roomId: String(state.pendingSlot.roomId),
     date: String(state.selectedDate),
     start, end, title, bookedBy: by
   };
 
-showToast('กำลังบันทึกข้อมูล...');
+  showToast('กำลังบันทึกข้อมูล...');
 
   const params = new URLSearchParams({
     action: 'addBooking',
@@ -520,7 +523,7 @@ showToast('กำลังบันทึกข้อมูล...');
         renderMain();
         showToast(t('saved'));
       } else {
-        showToast('เกิดข้อผิดพลาด: ' + res.message);
+        showToast('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถบันทึกได้'));
       }
     })
     .catch(err => {
@@ -528,13 +531,12 @@ showToast('กำลังบันทึกข้อมูล...');
       showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
     });
 };
-}; // <--- ซ่อมจุดนี้แล้ว
 
 document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
 document.getElementById('bkCancel').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
 
 function openBookingDetail(bookingId) {
-  state.activeDetailId = bookingId;
+  state.activeDetailId = String(bookingId);
   const b = state.bookings.find(x => String(x.id) === String(bookingId));
   if (!b) return;
   const room = state.rooms.find(r => String(r.id) === String(b.roomId));
@@ -554,7 +556,7 @@ function openBookingDetail(bookingId) {
 document.getElementById('detailDelete').onclick = () => {
   if (!confirm('Confirm delete?')) return;
   const bookingId = state.activeDetailId;
-showToast('กำลังลบข้อมูล...');
+  showToast('กำลังลบข้อมูล...');
 
   const params = new URLSearchParams({
     action: 'deleteBooking',
@@ -570,7 +572,7 @@ showToast('กำลังลบข้อมูล...');
         renderMain();
         showToast(t('deleted'));
       } else {
-        showToast('เกิดข้อผิดพลาด: ' + res.message);
+        showToast('เกิดข้อผิดพลาด: ' + (res.message || 'ไม่สามารถลบได้'));
       }
     })
     .catch(err => {
@@ -661,7 +663,7 @@ document.getElementById('btnNewRoom').onclick = () => {
 function editRoom(id) {
   const r = state.rooms.find(x => String(x.id) === String(id));
   if (!r) return;
-  state.editingRoomId = id;
+  state.editingRoomId = String(id);
   document.getElementById('roomModalTitle').textContent = 'Edit Room';
   document.getElementById('roomName').value = r.name;
   document.getElementById('roomCapacity').value = r.capacity;
@@ -701,7 +703,7 @@ document.getElementById('roomEditSave').onclick = async () => {
       if (imgBase64) r.image = imgBase64;
     }
   } else {
-    const newRoom = { id: uid(), name, capacity, location, step, image: imgBase64 };
+    const newRoom = { id: String(uid()), name, capacity, location, step, image: imgBase64 };
     state.rooms.push(newRoom);
     if (!state.selectedRoomId) state.selectedRoomId = newRoom.id;
   }
@@ -721,7 +723,7 @@ document.getElementById('roomEditCancel').onclick = () => document.getElementByI
 // 6. ดึงข้อมูล Google Apps Script & เริ่มต้นระบบ
 // ==========================================
 function fetchCloudData() {
-fetch(API_URL + '?action=getData')
+  fetch(API_URL + '?action=getData')
     .then(res => res.json())
     .then(data => {
       if (data.rooms) {
@@ -733,7 +735,8 @@ fetch(API_URL + '?action=getData')
 
       if (state.rooms.length > 0 && !state.selectedRoomId) {
         state.selectedRoomId = String(state.rooms[0].id);
-      }      renderSidebar();
+      }
+      renderSidebar();
       renderMain();
     })
     .catch(err => console.error('Cloud Sync Error:', err));
