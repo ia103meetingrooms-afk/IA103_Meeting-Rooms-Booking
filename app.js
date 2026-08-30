@@ -510,12 +510,10 @@ document.getElementById('bkSave').onclick = () => {
 
   showToast('กำลังบันทึกข้อมูล...');
   
-fetch(API_URL, {
+  fetch(API_URL, {
     method: 'POST',
-    mode: 'cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'addBooking', booking: newBooking }),
-    redirect: 'follow'
+    body: JSON.stringify({ action: 'addBooking', booking: newBooking })
   })
   .then(res => res.json())
   .then(res => {
@@ -532,6 +530,7 @@ fetch(API_URL, {
     console.error(err);
     showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
   });
+}; // <--- ซ่อมจุดนี้แล้ว
 
 document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
 document.getElementById('bkCancel').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
@@ -559,12 +558,10 @@ document.getElementById('detailDelete').onclick = () => {
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
   
-fetch(API_URL, {
+  fetch(API_URL, {
     method: 'POST',
-    mode: 'cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'deleteBooking', id: bookingId }),
-    redirect: 'follow'
+    body: JSON.stringify({ action: 'deleteBooking', id: bookingId })
   })
   .then(res => res.json())
   .then(res => {
@@ -581,6 +578,7 @@ fetch(API_URL, {
     console.error(err);
     showToast('เกิดข้อผิดพลาดในการส่งข้อมูล');
   });
+}; // <--- ซ่อมจุดนี้แล้ว
 
 document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 document.getElementById('detailClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
@@ -724,10 +722,7 @@ document.getElementById('roomEditCancel').onclick = () => document.getElementByI
 // 6. ดึงข้อมูล Google Apps Script & เริ่มต้นระบบ
 // ==========================================
 function fetchCloudData() {
-  fetch(API_URL + '?action=getData', {
-    method: 'GET',
-    redirect: 'follow'
-  })
+  fetch(API_URL + '?action=getData')
     .then(res => res.json())
     .then(data => {
       if (data.rooms) state.rooms = data.rooms;
@@ -741,6 +736,7 @@ function fetchCloudData() {
     })
     .catch(err => console.error('Cloud Sync Error:', err));
 }
+
 function init() {
   updateI18nTexts();
   applyBranding();
