@@ -132,7 +132,7 @@ function saveConfig() {
   localStorage.setItem('cfg_endHour', state.endHour);
 }
 
-function t(key) { return dict[state.lang]?.[key] || key; }
+function t(key) { return dict[state.lang][key] || key; }
 
 function setLanguage(lang) {
   state.lang = lang;
@@ -150,20 +150,15 @@ function updateI18nTexts() {
   
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const k = el.getAttribute('data-i18n');
-    if (dict[state.lang]?.[k]) el.textContent = dict[state.lang][k];
+    if (dict[state.lang][k]) el.textContent = dict[state.lang][k];
   });
 }
 
 function fmtDate(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-
-function uid() { 
-  return 'b_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); 
-}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 function generateTimeSlots(step = 30) {
   const slots = [];
@@ -174,19 +169,13 @@ function generateTimeSlots(step = 30) {
   }
   return slots;
 }
-
-function timeToMin(tStr) { 
-  if (!tStr) return 0;
-  const [h, m] = String(tStr).split(':').map(Number); 
-  return (h || 0) * 60 + (m || 0); 
-}
+function timeToMin(t) { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; }
 
 function showToast(msg) {
   const el = document.getElementById('toast');
   if (!el) return;
-  el.textContent = msg; 
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2500);
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
 }
 
 function escapeHtml(str) {
@@ -272,20 +261,20 @@ function renderMain() {
 
   const room = state.rooms.find(r => String(r.id) === String(state.selectedRoomId));
   if (!room) {
-    main.innerHTML = `<div style="text-align:center; margin:auto; color:var(--ink-soft); padding:40px;">${t('selectRoomPrompt')}</div>`;
+    main.innerHTML = `<div style="text-align:center; margin:auto; color:var(--ink-soft);">${t('selectRoomPrompt')}</div>`;
     return;
   }
 
   main.innerHTML = `
     <div class="schedule-controls">
       <div class="date-nav">
-        <button type="button" class="btn btn-glass btn-sm" onclick="shiftDate(-1)">${t('prev')}</button>
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(-1)">${t('prev')}</button>
         <div class="glass-date-input">
           <svg class="icon" style="margin-right:6px;"><use href="#icon-calendar"></use></svg>
           <input type="date" id="dateInput" value="${state.selectedDate}" onchange="changeDate(this.value)">
         </div>
-        <button type="button" class="btn btn-glass btn-sm" onclick="shiftDate(1)">${t('next')}</button>
-        <button type="button" class="btn btn-glass btn-sm" onclick="changeDate('${fmtDate(new Date())}')">${t('today')}</button>
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(1)">${t('next')}</button>
+        <button class="btn btn-glass btn-sm" onclick="changeDate('${fmtDate(new Date())}')">${t('today')}</button>
       </div>
     </div>
 
@@ -342,7 +331,7 @@ function renderHomeView(main) {
             ${escapeHtml(room.name)}
             <span style="font-size:12px; font-weight:normal; color:var(--ink-soft);">(${room.capacity} ${t('cap')})</span>
           </div>
-          <button type="button" class="btn btn-glass btn-sm" onclick="selectRoom('${room.id}')">${t('btnGoBook')}</button>
+          <button class="btn btn-glass btn-sm" onclick="selectRoom('${room.id}')">${t('btnGoBook')}</button>
         </div>
         ${timeScaleHtml}
         <div class="timeline-bar">
@@ -356,13 +345,13 @@ function renderHomeView(main) {
     <div class="schedule-controls" style="margin-bottom:10px;">
       <h2 style="font-size:18px; font-weight:700;">${t('homeTimelineTitle')}</h2>
       <div class="date-nav">
-        <button type="button" class="btn btn-glass btn-sm" onclick="shiftDate(-1)">${t('prev')}</button>
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(-1)">${t('prev')}</button>
         <div class="glass-date-input">
           <svg class="icon" style="margin-right:6px;"><use href="#icon-calendar"></use></svg>
           <input type="date" value="${state.selectedDate}" onchange="changeDate(this.value)">
         </div>
-        <button type="button" class="btn btn-glass btn-sm" onclick="shiftDate(1)">${t('next')}</button>
-        <button type="button" class="btn btn-glass btn-sm" onclick="changeDate('${fmtDate(new Date())}')">${t('today')}</button>
+        <button class="btn btn-glass btn-sm" onclick="shiftDate(1)">${t('next')}</button>
+        <button class="btn btn-glass btn-sm" onclick="changeDate('${fmtDate(new Date())}')">${t('today')}</button>
       </div>
     </div>
     <div class="home-timeline-container">
@@ -383,7 +372,7 @@ function renderTimelineSegments(bookings) {
   let html = '';
   let currentMin = startDay;
 
-  [...bookings].sort((a, b) => timeToMin(a.start) - timeToMin(b.start)).forEach(b => {
+  bookings.sort((a, b) => timeToMin(a.start) - timeToMin(b.start)).forEach(b => {
     const bStart = timeToMin(b.start);
     const bEnd = timeToMin(b.end);
 
@@ -413,7 +402,6 @@ function shiftDate(delta) {
 }
 
 function changeDate(val) {
-  if (!val) return;
   state.selectedDate = val;
   renderMain();
 }
@@ -468,47 +456,38 @@ function openBookingModal(roomId, startSlot) {
   const step = room ? (Number(room.step) || 30) : 30;
 
   state.pendingSlot = { roomId: String(roomId), step };
-  
-  const titleEl = document.getElementById('bkTitle');
-  const byEl = document.getElementById('bkBy');
-  const errEl = document.getElementById('bkError');
-  
-  if (titleEl) titleEl.value = '';
-  if (byEl) byEl.value = '';
-  if (errEl) errEl.classList.remove('show');
+  document.getElementById('bkTitle').value = '';
+  document.getElementById('bkBy').value = '';
+  document.getElementById('bkError').classList.remove('show');
 
   const slots = generateTimeSlots(step);
   const startSel = document.getElementById('bkStart');
   const endSel = document.getElementById('bkEnd');
 
-  if (startSel && endSel) {
-    startSel.innerHTML = slots.slice(0, -1).map(s => `<option value="${s}" ${s === startSlot ? 'selected' : ''}>${s}</option>`).join('');
-    
-    const updateEndOptions = () => {
-      const curStart = startSel.value;
-      const availableEnds = slots.filter(s => timeToMin(s) > timeToMin(curStart));
-      endSel.innerHTML = availableEnds.map((s, i) => `<option value="${s}" ${i === 0 ? 'selected' : ''}>${s}</option>`).join('');
-    };
-    
-    startSel.onchange = updateEndOptions;
-    updateEndOptions();
+  startSel.innerHTML = slots.slice(0, -1).map(s => `<option value="${s}" ${s === startSlot ? 'selected' : ''}>${s}</option>`).join('');
+  
+  function updateEndOptions() {
+    const curStart = startSel.value;
+    const availableEnds = slots.filter(s => timeToMin(s) > timeToMin(curStart));
+    endSel.innerHTML = availableEnds.map((s, i) => `<option value="${s}" ${i === 0 ? 'selected' : ''}>${s}</option>`).join('');
   }
+  
+  startSel.onchange = updateEndOptions;
+  updateEndOptions();
 
-  document.getElementById('bookingOverlay')?.classList.add('open');
+  document.getElementById('bookingOverlay').classList.add('open');
 }
 
-function handleSaveBooking() {
-  const title = document.getElementById('bkTitle')?.value.trim();
-  const by = document.getElementById('bkBy')?.value.trim();
-  const start = document.getElementById('bkStart')?.value;
-  const end = document.getElementById('bkEnd')?.value;
+document.getElementById('bkSave').onclick = () => {
+  const title = document.getElementById('bkTitle').value.trim();
+  const by = document.getElementById('bkBy').value.trim();
+  const start = document.getElementById('bkStart').value;
+  const end = document.getElementById('bkEnd').value;
   const errEl = document.getElementById('bkError');
 
   if (!title || !by) {
-    if (errEl) {
-      errEl.textContent = t('fillAll');
-      errEl.classList.add('show');
-    }
+    errEl.textContent = t('fillAll');
+    errEl.classList.add('show');
     return;
   }
 
@@ -516,54 +495,50 @@ function handleSaveBooking() {
   const endMin = timeToMin(end);
 
   const conflict = state.bookings.some(b => 
-    String(b.roomId) === String(state.pendingSlot?.roomId) &&
+    String(b.roomId) === String(state.pendingSlot.roomId) &&
     String(b.date).trim() === String(state.selectedDate).trim() &&
     !(endMin <= timeToMin(b.start) || startMin >= timeToMin(b.end))
   );
 
   if (conflict) {
-    if (errEl) {
-      errEl.textContent = t('conflictErr');
-      errEl.classList.add('show');
-    }
+    errEl.textContent = t('conflictErr');
+    errEl.classList.add('show');
     return;
   }
 
   const newBooking = {
-    id: uid(),
+    id: String(uid()),
     roomId: String(state.pendingSlot.roomId),
     date: String(state.selectedDate),
-    start, 
-    end, 
-    title, 
-    bookedBy: by
+    start, end, title, bookedBy: by
   };
 
   showToast('กำลังบันทึกข้อมูล...');
 
-  // ส่งแบบ URLSearchParams เพื่อรองรับ CORS กับ Google Apps Script
-  const payload = new URLSearchParams();
-  payload.append('action', 'addBooking');
-  payload.append('booking', JSON.stringify(newBooking));
-
+  // ใช้ POST ร่วมกับ mode: 'no-cors' เพื่อแก้ไขปัญหา CORS กับ Google Apps Script
   fetch(API_URL, {
     method: 'POST',
-    body: payload
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'addBooking',
+      booking: newBooking
+    })
   })
   .then(() => {
     state.bookings.push(newBooking);
-    document.getElementById('bookingOverlay')?.classList.remove('open');
+    document.getElementById('bookingOverlay').classList.remove('open');
     renderMain();
     showToast(t('saved'));
   })
   .catch(err => {
-    console.error('Save error:', err);
-    state.bookings.push(newBooking);
-    document.getElementById('bookingOverlay')?.classList.remove('open');
-    renderMain();
-    showToast(t('saved'));
+    console.error(err);
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
   });
-}
+};
+
+document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
+document.getElementById('bkCancel').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
 
 function openBookingDetail(bookingId) {
   state.activeDetailId = String(bookingId);
@@ -571,85 +546,82 @@ function openBookingDetail(bookingId) {
   if (!b) return;
   const room = state.rooms.find(r => String(r.id) === String(b.roomId));
 
-  const bodyEl = document.getElementById('detailBody');
-  if (bodyEl) {
-    bodyEl.innerHTML = `
-      <div style="font-size:14px; line-height:1.8;">
-        <p><strong>${t('lblTopic')}:</strong> ${escapeHtml(b.title)}</p>
-        <p><strong>${t('lblBooker')}:</strong> ${escapeHtml(b.bookedBy)}</p>
-        <p><strong>${t('lblRoomName')}:</strong> ${escapeHtml(room ? room.name : '-')}</p>
-        <p><strong>${t('lblDate')}:</strong> ${b.date}</p>
-        <p><strong>${t('lblTime')}:</strong> ${b.start} - ${b.end}</p>
-      </div>
-    `;
-  }
-  document.getElementById('detailOverlay')?.classList.add('open');
+  document.getElementById('detailBody').innerHTML = `
+    <div style="font-size:14px; line-height:1.8;">
+      <p><strong>${t('lblTopic')}:</strong> ${escapeHtml(b.title)}</p>
+      <p><strong>${t('lblBooker')}:</strong> ${escapeHtml(b.bookedBy)}</p>
+      <p><strong>${t('lblRoomName')}:</strong> ${escapeHtml(room ? room.name : '')}</p>
+      <p><strong>${t('lblDate')}:</strong> ${b.date}</p>
+      <p><strong>${t('lblTime')}:</strong> ${b.start} - ${b.end}</p>
+    </div>
+  `;
+  document.getElementById('detailOverlay').classList.add('open');
 }
 
-function handleDeleteBooking() {
-  if (!confirm('ยืนยันลบรายการจองนี้?')) return;
+document.getElementById('detailDelete').onclick = () => {
+  if (!confirm('Confirm delete?')) return;
   const bookingId = state.activeDetailId;
   showToast('กำลังลบข้อมูล...');
 
-  const payload = new URLSearchParams();
-  payload.append('action', 'deleteBooking');
-  payload.append('id', bookingId);
-
   fetch(API_URL, {
     method: 'POST',
-    body: payload
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'deleteBooking',
+      id: bookingId
+    })
   })
   .then(() => {
     state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
-    document.getElementById('detailOverlay')?.classList.remove('open');
+    document.getElementById('detailOverlay').classList.remove('open');
     renderMain();
     showToast(t('deleted'));
   })
   .catch(err => {
-    console.error('Delete error:', err);
-    state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
-    document.getElementById('detailOverlay')?.classList.remove('open');
-    renderMain();
-    showToast(t('deleted'));
+    console.error(err);
+    showToast('เกิดข้อผิดพลาดในการลบข้อมูล');
   });
-}
+};
+
+document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
+document.getElementById('detailClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 
 // ==========================================
 // 5. Settings & Room Operations
 // ==========================================
-function openSettingsModal() {
-  const compInput = document.getElementById('cfgCompanyName');
-  if (compInput) compInput.value = state.companyName;
+document.getElementById('btnOpenSettings').onclick = () => {
+  document.getElementById('cfgCompanyName').value = state.companyName;
   
   const startSel = document.getElementById('cfgStartHour');
   const endSel = document.getElementById('cfgEndHour');
   
-  if (startSel && endSel) {
-    let hourOpts = '';
-    for (let i = 0; i <= 24; i++) {
-      const h = String(i).padStart(2, '0') + ':00';
-      hourOpts += `<option value="${i}">${h}</option>`;
-    }
-    startSel.innerHTML = hourOpts;
-    endSel.innerHTML = hourOpts;
-    
-    startSel.value = state.startHour;
-    endSel.value = state.endHour;
+  let hourOpts = '';
+  for (let i = 0; i <= 24; i++) {
+    const h = String(i).padStart(2, '0') + ':00';
+    hourOpts += `<option value="${i}">${h}</option>`;
   }
+  startSel.innerHTML = hourOpts;
+  endSel.innerHTML = hourOpts;
+  
+  startSel.value = state.startHour;
+  endSel.value = state.endHour;
 
   renderSettingRoomList();
-  document.getElementById('settingOverlay')?.classList.add('open');
-}
+  document.getElementById('settingOverlay').classList.add('open');
+};
+
+document.getElementById('settingModalClose').onclick = () => document.getElementById('settingOverlay').classList.remove('open');
 
 function renderSettingRoomList() {
   const container = document.getElementById('settingRoomList');
   if (!container) return;
   container.innerHTML = state.rooms.map(r => `
-    <div class="setting-room-item" style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:rgba(255,255,255,0.05); border-radius:6px;">
+    <div class="setting-room-item">
       <span><strong>${escapeHtml(r.name)}</strong> (${r.capacity} ${t('cap')} / ${r.step || 30}m)</span>
       <div style="display:flex; gap:6px;">
-        <button type="button" class="btn btn-glass btn-sm" onclick="editRoom('${r.id}')"><svg class="icon"><use href="#icon-edit"></use></svg></button>
-        <button type="button" class="btn btn-danger btn-sm" onclick="deleteRoom('${r.id}')"><svg class="icon"><use href="#icon-trash"></use></svg></button>
+        <button class="btn btn-glass btn-sm" onclick="editRoom('${r.id}')"><svg class="icon"><use href="#icon-edit"></use></svg></button>
+        <button class="btn btn-danger btn-sm" onclick="deleteRoom('${r.id}')"><svg class="icon"><use href="#icon-trash"></use></svg></button>
       </div>
     </div>
   `).join('');
@@ -664,49 +636,51 @@ function fileToBase64(file) {
   });
 }
 
-async function handleSaveSettings() {
-  state.companyName = document.getElementById('cfgCompanyName')?.value.trim() || 'IA103';
-  state.startHour = parseInt(document.getElementById('cfgStartHour')?.value) || 8;
-  state.endHour = parseInt(document.getElementById('cfgEndHour')?.value) || 19;
+document.getElementById('btnSaveSettings').onclick = async () => {
+  state.companyName = document.getElementById('cfgCompanyName').value.trim() || 'IA103';
+  state.startHour = parseInt(document.getElementById('cfgStartHour').value);
+  state.endHour = parseInt(document.getElementById('cfgEndHour').value);
 
-  const logoFile = document.getElementById('cfgLogoInput')?.files[0];
+  const logoFile = document.getElementById('cfgLogoInput').files[0];
   if (logoFile) state.logo = await fileToBase64(logoFile);
 
-  const bgFile = document.getElementById('cfgBgInput')?.files[0];
+  const bgFile = document.getElementById('cfgBgInput').files[0];
   if (bgFile) state.bg = await fileToBase64(bgFile);
 
   saveConfig();
   applyBranding();
-  document.getElementById('settingOverlay')?.classList.remove('open');
+  document.getElementById('settingOverlay').classList.remove('open');
   renderMain();
   showToast(t('saved'));
-}
+};
+
+document.getElementById('btnNewRoom').onclick = () => {
+  state.editingRoomId = null;
+  document.getElementById('roomModalTitle').textContent = t('btnAddRoom');
+  document.getElementById('roomName').value = '';
+  document.getElementById('roomCapacity').value = '';
+  document.getElementById('roomLocation').value = '';
+  document.getElementById('roomSlotStep').value = '30';
+  document.getElementById('roomEditOverlay').classList.add('open');
+};
 
 function editRoom(id) {
   const r = state.rooms.find(x => String(x.id) === String(id));
   if (!r) return;
   state.editingRoomId = String(id);
-  
-  const titleEl = document.getElementById('roomModalTitle');
-  if (titleEl) titleEl.textContent = 'แก้ไขห้องประชุม';
-  
-  document.getElementById('roomName').value = r.name || '';
-  document.getElementById('roomCapacity').value = r.capacity || '';
-  document.getElementById('roomLocation').value = r.location || '';
+  document.getElementById('roomModalTitle').textContent = 'Edit Room';
+  document.getElementById('roomName').value = r.name;
+  document.getElementById('roomCapacity').value = r.capacity;
+  document.getElementById('roomLocation').value = r.location;
   document.getElementById('roomSlotStep').value = r.step || 30;
-  
-  document.getElementById('roomEditOverlay')?.classList.add('open');
+  document.getElementById('roomEditOverlay').classList.add('open');
 }
 
 function deleteRoom(id) {
-  if (!confirm('ยืนยันลบห้องประชุมนี้?')) return;
+  if (!confirm('Delete room?')) return;
   state.rooms = state.rooms.filter(r => String(r.id) !== String(id));
   state.bookings = state.bookings.filter(b => String(b.roomId) !== String(id));
-  
-  if (String(state.selectedRoomId) === String(id)) {
-    state.selectedRoomId = state.rooms[0]?.id ? String(state.rooms[0].id) : null;
-  }
-  
+  if (String(state.selectedRoomId) === String(id)) state.selectedRoomId = state.rooms[0]?.id || null;
   saveConfig();
   renderSettingRoomList();
   renderSidebar();
@@ -714,17 +688,14 @@ function deleteRoom(id) {
   showToast(t('deleted'));
 }
 
-async function handleSaveRoom() {
-  const name = document.getElementById('roomName')?.value.trim();
-  const capacity = document.getElementById('roomCapacity')?.value;
-  const location = document.getElementById('roomLocation')?.value.trim();
-  const step = parseInt(document.getElementById('roomSlotStep')?.value) || 30;
-  const imgFile = document.getElementById('roomImageInput')?.files[0];
+document.getElementById('roomEditSave').onclick = async () => {
+  const name = document.getElementById('roomName').value.trim();
+  const capacity = document.getElementById('roomCapacity').value;
+  const location = document.getElementById('roomLocation').value.trim();
+  const step = parseInt(document.getElementById('roomSlotStep').value) || 30;
+  const imgFile = document.getElementById('roomImageInput').files[0];
 
-  if (!name) {
-    alert('กรุณากรอกชื่อห้องประชุม');
-    return;
-  }
+  if (!name) return alert('Name required');
 
   let imgBase64 = '';
   if (imgFile) imgBase64 = await fileToBase64(imgFile);
@@ -732,10 +703,7 @@ async function handleSaveRoom() {
   if (state.editingRoomId) {
     const r = state.rooms.find(x => String(x.id) === String(state.editingRoomId));
     if (r) {
-      r.name = name; 
-      r.capacity = capacity; 
-      r.location = location; 
-      r.step = step;
+      r.name = name; r.capacity = capacity; r.location = location; r.step = step;
       if (imgBase64) r.image = imgBase64;
     }
   } else {
@@ -748,9 +716,12 @@ async function handleSaveRoom() {
   renderSettingRoomList();
   renderSidebar();
   renderMain();
-  document.getElementById('roomEditOverlay')?.classList.remove('open');
+  document.getElementById('roomEditOverlay').classList.remove('open');
   showToast(t('saved'));
-}
+};
+
+document.getElementById('roomEditModalClose').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
+document.getElementById('roomEditCancel').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
 
 // ==========================================
 // 6. Fetch Data & Initialize
@@ -759,10 +730,10 @@ function fetchCloudData() {
   fetch(`${API_URL}?action=getData`)
     .then(res => res.json())
     .then(data => {
-      if (data && Array.isArray(data.rooms) && data.rooms.length > 0) {
+      if (data && data.rooms) {
         state.rooms = data.rooms.map(r => ({ ...r, id: String(r.id) }));
       }
-      if (data && Array.isArray(data.bookings)) {
+      if (data && data.bookings) {
         state.bookings = data.bookings.map(b => ({ ...b, id: String(b.id), roomId: String(b.roomId) }));
       }
 
@@ -779,44 +750,11 @@ function fetchCloudData() {
     });
 }
 
-function initEvents() {
-  // Booking Modal Events
-  document.getElementById('bkSave')?.addEventListener('click', handleSaveBooking);
-  document.getElementById('bookingModalClose')?.addEventListener('click', () => document.getElementById('bookingOverlay')?.classList.remove('open'));
-  document.getElementById('bkCancel')?.addEventListener('click', () => document.getElementById('bookingOverlay')?.classList.remove('open'));
-
-  // Detail Modal Events
-  document.getElementById('detailDelete')?.addEventListener('click', handleDeleteBooking);
-  document.getElementById('detailModalClose')?.addEventListener('click', () => document.getElementById('detailOverlay')?.classList.remove('open'));
-  document.getElementById('detailClose')?.addEventListener('click', () => document.getElementById('detailOverlay')?.classList.remove('open'));
-
-  // Settings Modal Events
-  document.getElementById('btnOpenSettings')?.addEventListener('click', openSettingsModal);
-  document.getElementById('settingModalClose')?.addEventListener('click', () => document.getElementById('settingOverlay')?.classList.remove('open'));
-  document.getElementById('btnSaveSettings')?.addEventListener('click', handleSaveSettings);
-
-  // Room Edit Modal Events
-  document.getElementById('btnNewRoom')?.addEventListener('click', () => {
-    state.editingRoomId = null;
-    const titleEl = document.getElementById('roomModalTitle');
-    if (titleEl) titleEl.textContent = t('btnAddRoom');
-    document.getElementById('roomName').value = '';
-    document.getElementById('roomCapacity').value = '';
-    document.getElementById('roomLocation').value = '';
-    document.getElementById('roomSlotStep').value = '30';
-    document.getElementById('roomEditOverlay')?.classList.add('open');
-  });
-  document.getElementById('roomEditSave')?.addEventListener('click', handleSaveRoom);
-  document.getElementById('roomEditModalClose')?.addEventListener('click', () => document.getElementById('roomEditOverlay')?.classList.remove('open'));
-  document.getElementById('roomEditCancel')?.addEventListener('click', () => document.getElementById('roomEditOverlay')?.classList.remove('open'));
-}
-
 function init() {
-  initEvents();
   updateI18nTexts();
   applyBranding();
   fetchCloudData();
-  setInterval(fetchCloudData, 15000);
+  setInterval(fetchCloudData, 10000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
