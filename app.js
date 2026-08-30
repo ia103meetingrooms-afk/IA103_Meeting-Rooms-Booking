@@ -499,62 +499,68 @@ function openBookingModal(roomId, startSlot) {
   document.getElementById('bookingOverlay').classList.add('open');
 }
 
-document.getElementById('bkSave').onclick = async () => {
-  const title = document.getElementById('bkTitle').value.trim();
-  const by = document.getElementById('bkBy').value.trim();
-  const start = document.getElementById('bkStart').value;
-  const end = document.getElementById('bkEnd').value;
-  const errEl = document.getElementById('bkError');
+const bkSaveBtn = document.getElementById('bkSave');
+if (bkSaveBtn) {
+  bkSaveBtn.onclick = async () => {
+    const title = document.getElementById('bkTitle').value.trim();
+    const by = document.getElementById('bkBy').value.trim();
+    const start = document.getElementById('bkStart').value;
+    const end = document.getElementById('bkEnd').value;
+    const errEl = document.getElementById('bkError');
 
-  if (!title || !by) {
-    errEl.textContent = t('fillAll');
-    errEl.classList.add('show');
-    return;
-  }
+    if (!title || !by) {
+      errEl.textContent = t('fillAll');
+      errEl.classList.add('show');
+      return;
+    }
 
-  const startMin = timeToMin(start);
-  const endMin = timeToMin(end);
+    const startMin = timeToMin(start);
+    const endMin = timeToMin(end);
 
-  const conflict = state.bookings.some(b => 
-    String(b.roomId) === String(state.pendingSlot.roomId) &&
-    String(b.date).trim() === String(state.selectedDate).trim() &&
-    !(endMin <= timeToMin(b.start) || startMin >= timeToMin(b.end))
-  );
+    const conflict = state.bookings.some(b => 
+      String(b.roomId) === String(state.pendingSlot.roomId) &&
+      String(b.date).trim() === String(state.selectedDate).trim() &&
+      !(endMin <= timeToMin(b.start) || startMin >= timeToMin(b.end))
+    );
 
-  if (conflict) {
-    errEl.textContent = t('conflictErr');
-    errEl.classList.add('show');
-    return;
-  }
+    if (conflict) {
+      errEl.textContent = t('conflictErr');
+      errEl.classList.add('show');
+      return;
+    }
 
-  showToast('กำลังส่งข้อมูลการจอง...');
+    showToast('กำลังส่งข้อมูลการจอง...');
 
-  const { data, error } = await supabase
-    .from('bookings')
-    .insert([
-      {
-        room_id: state.pendingSlot.roomId,
-        date: state.selectedDate,
-        start_time: start,
-        end_time: end,
-        title: title,
-        booked_by: by
-      }
-    ]);
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert([
+        {
+          room_id: state.pendingSlot.roomId,
+          date: state.selectedDate,
+          start_time: start,
+          end_time: end,
+          title: title,
+          booked_by: by
+        }
+      ]);
 
-  if (error) {
-    console.error('Booking Error:', error);
-    errEl.textContent = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
-    errEl.classList.add('show');
-  } else {
-    document.getElementById('bookingOverlay').classList.remove('open');
-    showToast(t('saved'));
-    fetchCloudData();
-  }
-};
+    if (error) {
+      console.error('Booking Error:', error);
+      errEl.textContent = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+      errEl.classList.add('show');
+    } else {
+      document.getElementById('bookingOverlay').classList.remove('open');
+      showToast(t('saved'));
+      fetchCloudData();
+    }
+  };
+}
 
-document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
-document.getElementById('bkCancel').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
+const bookingModalCloseBtn = document.getElementById('bookingModalClose');
+if (bookingModalCloseBtn) bookingModalCloseBtn.onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
+
+const bkCancelBtn = document.getElementById('bkCancel');
+if (bkCancelBtn) bkCancelBtn.onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
 
 function openBookingDetail(bookingId) {
   state.activeDetailId = String(bookingId);
@@ -579,55 +585,65 @@ function openBookingDetail(bookingId) {
   document.getElementById('detailOverlay').classList.add('open');
 }
 
-document.getElementById('detailDelete').onclick = async () => {
-  if (!confirm('ยืนยันการลบการจองนี้?')) return;
-  const bookingId = state.activeDetailId;
-  showToast('กำลังลบข้อมูล...');
+const detailDeleteBtn = document.getElementById('detailDelete');
+if (detailDeleteBtn) {
+  detailDeleteBtn.onclick = async () => {
+    if (!confirm('ยืนยันการลบการจองนี้?')) return;
+    const bookingId = state.activeDetailId;
+    showToast('กำลังลบข้อมูล...');
 
-  const { error } = await supabase
-    .from('bookings')
-    .delete()
-    .eq('id', bookingId);
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', bookingId);
 
-  if (!error) {
-    document.getElementById('detailOverlay').classList.remove('open');
-    showToast(t('deleted'));
-    fetchCloudData();
-  } else {
-    showToast('ลบข้อมูลไม่สำเร็จ');
-  }
-};
+    if (!error) {
+      document.getElementById('detailOverlay').classList.remove('open');
+      showToast(t('deleted'));
+      fetchCloudData();
+    } else {
+      showToast('ลบข้อมูลไม่สำเร็จ');
+    }
+  };
+}
 
-document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
-document.getElementById('detailClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
+const detailModalCloseBtn = document.getElementById('detailModalClose');
+if (detailModalCloseBtn) detailModalCloseBtn.onclick = () => document.getElementById('detailOverlay').classList.remove('open');
+
+const detailCloseBtn = document.getElementById('detailClose');
+if (detailCloseBtn) detailCloseBtn.onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 
 // ==========================================
-// Settings Operations
+// Settings Operations (เปิดใช้งานโดยตรง)
 // ==========================================
-document.getElementById('btnOpenSettings').onclick = () => {
-  document.getElementById('cfgCompanyName').value = state.companyName;
-  document.getElementById('cfgLogoInput').value = state.logo;
-  document.getElementById('cfgBgInput').value = state.bg;
-  
-  const startSel = document.getElementById('cfgStartHour');
-  const endSel = document.getElementById('cfgEndHour');
-  
-  let hourOpts = '';
-  for (let i = 0; i <= 24; i++) {
-    const h = String(i).padStart(2, '0') + ':00';
-    hourOpts += `<option value="${i}">${h}</option>`;
-  }
-  startSel.innerHTML = hourOpts;
-  endSel.innerHTML = hourOpts;
-  
-  startSel.value = state.startHour;
-  endSel.value = state.endHour;
+const btnOpenSettings = document.getElementById('btnOpenSettings');
+if (btnOpenSettings) {
+  btnOpenSettings.onclick = () => {
+    document.getElementById('cfgCompanyName').value = state.companyName;
+    document.getElementById('cfgLogoInput').value = state.logo;
+    document.getElementById('cfgBgInput').value = state.bg;
+    
+    const startSel = document.getElementById('cfgStartHour');
+    const endSel = document.getElementById('cfgEndHour');
+    
+    let hourOpts = '';
+    for (let i = 0; i <= 24; i++) {
+      const h = String(i).padStart(2, '0') + ':00';
+      hourOpts += `<option value="${i}">${h}</option>`;
+    }
+    startSel.innerHTML = hourOpts;
+    endSel.innerHTML = hourOpts;
+    
+    startSel.value = state.startHour;
+    endSel.value = state.endHour;
 
-  renderSettingRoomList();
-  document.getElementById('settingOverlay').classList.add('open');
-};
+    renderSettingRoomList();
+    document.getElementById('settingOverlay').classList.add('open');
+  };
+}
 
-document.getElementById('settingModalClose').onclick = () => document.getElementById('settingOverlay').classList.remove('open');
+const settingModalCloseBtn = document.getElementById('settingModalClose');
+if (settingModalCloseBtn) settingModalCloseBtn.onclick = () => document.getElementById('settingOverlay').classList.remove('open');
 
 function renderSettingRoomList() {
   const container = document.getElementById('settingRoomList');
@@ -643,30 +659,36 @@ function renderSettingRoomList() {
   `).join('');
 }
 
-document.getElementById('btnSaveSettings').onclick = () => {
-  state.companyName = document.getElementById('cfgCompanyName').value.trim() || 'IA103';
-  state.startHour = parseInt(document.getElementById('cfgStartHour').value);
-  state.endHour = parseInt(document.getElementById('cfgEndHour').value);
-  state.logo = convertToDirectLink(document.getElementById('cfgLogoInput').value.trim());
-  state.bg = convertToDirectLink(document.getElementById('cfgBgInput').value.trim());
+const btnSaveSettings = document.getElementById('btnSaveSettings');
+if (btnSaveSettings) {
+  btnSaveSettings.onclick = () => {
+    state.companyName = document.getElementById('cfgCompanyName').value.trim() || 'IA103';
+    state.startHour = parseInt(document.getElementById('cfgStartHour').value);
+    state.endHour = parseInt(document.getElementById('cfgEndHour').value);
+    state.logo = convertToDirectLink(document.getElementById('cfgLogoInput').value.trim());
+    state.bg = convertToDirectLink(document.getElementById('cfgBgInput').value.trim());
 
-  saveConfig();
-  applyBranding();
-  document.getElementById('settingOverlay').classList.remove('open');
-  renderMain();
-  showToast(t('saved'));
-};
+    saveConfig();
+    applyBranding();
+    document.getElementById('settingOverlay').classList.remove('open');
+    renderMain();
+    showToast(t('saved'));
+  };
+}
 
-document.getElementById('btnNewRoom').onclick = () => {
-  state.editingRoomId = null;
-  document.getElementById('roomModalTitle').textContent = t('btnAddRoom');
-  document.getElementById('roomName').value = '';
-  document.getElementById('roomCapacity').value = '';
-  document.getElementById('roomLocation').value = '';
-  document.getElementById('roomSlotStep').value = '30';
-  document.getElementById('roomImageInput').value = '';
-  document.getElementById('roomEditOverlay').classList.add('open');
-};
+const btnNewRoom = document.getElementById('btnNewRoom');
+if (btnNewRoom) {
+  btnNewRoom.onclick = () => {
+    state.editingRoomId = null;
+    document.getElementById('roomModalTitle').textContent = t('btnAddRoom');
+    document.getElementById('roomName').value = '';
+    document.getElementById('roomCapacity').value = '';
+    document.getElementById('roomLocation').value = '';
+    document.getElementById('roomSlotStep').value = '30';
+    document.getElementById('roomImageInput').value = '';
+    document.getElementById('roomEditOverlay').classList.add('open');
+  };
+}
 
 function editRoom(id) {
   const r = state.rooms.find(x => String(x.id) === String(id));
@@ -694,28 +716,34 @@ async function deleteRoom(id) {
   }
 }
 
-document.getElementById('roomEditSave').onclick = async () => {
-  const name = document.getElementById('roomName').value.trim();
-  const capacity = document.getElementById('roomCapacity').value;
-  const location = document.getElementById('roomLocation').value.trim();
-  const step = parseInt(document.getElementById('roomSlotStep').value) || 30;
-  const imageUrl = convertToDirectLink(document.getElementById('roomImageInput').value.trim());
+const roomEditSaveBtn = document.getElementById('roomEditSave');
+if (roomEditSaveBtn) {
+  roomEditSaveBtn.onclick = async () => {
+    const name = document.getElementById('roomName').value.trim();
+    const capacity = document.getElementById('roomCapacity').value;
+    const location = document.getElementById('roomLocation').value.trim();
+    const step = parseInt(document.getElementById('roomSlotStep').value) || 30;
+    const imageUrl = convertToDirectLink(document.getElementById('roomImageInput').value.trim());
 
-  if (!name) return alert('กรุณากรอกชื่อห้องประชุม');
+    if (!name) return alert('กรุณากรอกชื่อห้องประชุม');
 
-  if (state.editingRoomId) {
-    await supabase.from('rooms').update({ name, capacity, location, step, image: imageUrl }).eq('id', state.editingRoomId);
-  } else {
-    await supabase.from('rooms').insert([{ name, capacity, location, step, image: imageUrl }]);
-  }
+    if (state.editingRoomId) {
+      await supabase.from('rooms').update({ name, capacity, location, step, image: imageUrl }).eq('id', state.editingRoomId);
+    } else {
+      await supabase.from('rooms').insert([{ name, capacity, location, step, image: imageUrl }]);
+    }
 
-  fetchCloudData();
-  document.getElementById('roomEditOverlay').classList.remove('open');
-  showToast(t('saved'));
-};
+    fetchCloudData();
+    document.getElementById('roomEditOverlay').classList.remove('open');
+    showToast(t('saved'));
+  };
+}
 
-document.getElementById('roomEditModalClose').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
-document.getElementById('roomEditCancel').onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
+const roomEditModalCloseBtn = document.getElementById('roomEditModalClose');
+if (roomEditModalCloseBtn) roomEditModalCloseBtn.onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
+
+const roomEditCancelBtn = document.getElementById('roomEditCancel');
+if (roomEditCancelBtn) roomEditCancelBtn.onclick = () => document.getElementById('roomEditOverlay').classList.remove('open');
 
 // ==========================================
 // Cloud Fetch & Supabase Real-time Sync
