@@ -1,7 +1,7 @@
 // ==========================================
 // CONFIGURATION & SUPABASE SETUP
 // ==========================================
-const SUPABASE_URL = "gsovpscrhwykvxpkrzxr";
+const SUPABASE_URL = "https://gsovpscrhwykvxpkrzxr.supabase.co";
 const SUPABASE_ANON_KEY = "ap-southeast-1";
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -183,6 +183,7 @@ function generateTimeSlots(step = 30) {
   }
   return slots;
 }
+
 function timeToMin(t) { 
   if(!t) return 0;
   const parts = String(t).split(':'); 
