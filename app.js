@@ -242,7 +242,6 @@ function updateUserUI() {
     if (loginBtn) loginBtn.style.display = 'inline-flex';
     if (userContainer) userContainer.style.display = 'none';
     if (settingsBtn) settingsBtn.style.display = 'none';
-    openLoginModal();
   }
 }
 
@@ -254,9 +253,12 @@ function openLoginModal() {
 }
 
 const loginCloseBtn = document.getElementById('loginModalClose');
-if (loginCloseBtn) loginCloseBtn.style.display = 'none';
+if (loginCloseBtn) {
+  loginCloseBtn.style.display = 'block';
+  loginCloseBtn.onclick = () => document.getElementById('loginOverlay').classList.remove('open');
+}
 
-// *** แก้ไขจุดสำคัญ: เปลี่ยน Login จาก GET ไปใช้ POST แบบ text/plain ***
+// *** แก้ไขจุดสำคัญ: ใช้ GET Request ข้าม CORS Preflight เพื่อป้องกัน Connection Error ***
 document.getElementById('btnLoginSubmit').onclick = () => {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
@@ -270,11 +272,9 @@ document.getElementById('btnLoginSubmit').onclick = () => {
 
   showToast('กำลังตรวจสอบสิทธิ์...');
 
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'login', username, password })
-  })
+  const loginUrl = `${API_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+
+  fetch(loginUrl)
     .then(res => res.json())
     .then(data => {
       if (data.status === 'success') {
