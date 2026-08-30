@@ -508,28 +508,30 @@ document.getElementById('bkSave').onclick = () => {
     start, end, title, bookedBy: by
   };
 
-  showToast('กำลังบันทึกข้อมูล...');
-  
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'addBooking', booking: newBooking })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if(res.status === 'success') {
-      state.bookings.push(newBooking);
-      document.getElementById('bookingOverlay').classList.remove('open');
-      renderMain();
-      showToast(t('saved'));
-    } else {
-      showToast('เกิดข้อผิดพลาด: ' + res.message);
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+showToast('กำลังบันทึกข้อมูล...');
+
+  const params = new URLSearchParams({
+    action: 'addBooking',
+    booking: JSON.stringify(newBooking)
   });
+
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(res => {
+      if (res.status === 'success') {
+        state.bookings.push(newBooking);
+        document.getElementById('bookingOverlay').classList.remove('open');
+        renderMain();
+        showToast(t('saved'));
+      } else {
+        showToast('เกิดข้อผิดพลาด: ' + res.message);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    });
+};
 }; // <--- ซ่อมจุดนี้แล้ว
 
 document.getElementById('bookingModalClose').onclick = () => document.getElementById('bookingOverlay').classList.remove('open');
@@ -556,29 +558,30 @@ function openBookingDetail(bookingId) {
 document.getElementById('detailDelete').onclick = () => {
   if (!confirm('Confirm delete?')) return;
   const bookingId = state.activeDetailId;
-  showToast('กำลังลบข้อมูล...');
-  
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'deleteBooking', id: bookingId })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if(res.status === 'success') {
-      state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
-      document.getElementById('detailOverlay').classList.remove('open');
-      renderMain();
-      showToast(t('deleted'));
-    } else {
-      showToast('เกิดข้อผิดพลาด: ' + res.message);
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    showToast('เกิดข้อผิดพลาดในการส่งข้อมูล');
+showToast('กำลังลบข้อมูล...');
+
+  const params = new URLSearchParams({
+    action: 'deleteBooking',
+    id: bookingId
   });
-}; // <--- ซ่อมจุดนี้แล้ว
+
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(res => {
+      if (res.status === 'success') {
+        state.bookings = state.bookings.filter(b => String(b.id) !== String(bookingId));
+        document.getElementById('detailOverlay').classList.remove('open');
+        renderMain();
+        showToast(t('deleted'));
+      } else {
+        showToast('เกิดข้อผิดพลาด: ' + res.message);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    });
+};
 
 document.getElementById('detailModalClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
 document.getElementById('detailClose').onclick = () => document.getElementById('detailOverlay').classList.remove('open');
